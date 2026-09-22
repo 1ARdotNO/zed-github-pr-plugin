@@ -13,7 +13,7 @@ jobs:
     name: llvm-cov
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           components: llvm-tools-preview
@@ -22,7 +22,7 @@ jobs:
       - name: Coverage
         run: cargo llvm-cov --workspace --locked --lcov --output-path lcov.info
       - name: Upload to Codecov
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
         with:
           files: lcov.info
           fail_ci_if_error: false
