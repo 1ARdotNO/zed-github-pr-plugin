@@ -3,12 +3,15 @@
 **Manage GitHub pull requests from inside Zed.**
 
 A Zed extension that ships an MCP context server for GitHub PRs: list and filter
-pending PRs, inspect a PR in detail, and switch between your GitHub accounts —
-all from Zed's Agent Panel. Notifications on PR updates are on the roadmap.
+pending PRs, inspect a PR in detail, switch between your GitHub accounts, get
+desktop notifications on updates, and open a review — from Zed's Agent Panel, a
+terminal CLI, or an interactive dashboard.
 
-> Status: **early, usable.** PR listing/filtering/detail and multi-account work
-> today. See [`TODO.md`](TODO.md) for the roadmap and [`DESIGN.md`](DESIGN.md) for
-> why it's built as an MCP server.
+📖 **Docs: <https://1ardotno.github.io/zed-github-pr-plugin/>**
+
+> Status: **usable.** PR listing/filtering/detail, multi-account, notifications,
+> review shortcut, CLI, and TUI all work today. See [`TODO.md`](TODO.md) for the
+> roadmap and [`DESIGN.md`](DESIGN.md) for why it's built as an MCP server.
 
 ## Why an MCP server?
 

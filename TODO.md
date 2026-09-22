@@ -85,9 +85,9 @@ Noise controls (esp. for comments):
 ## Phase 5 — Polish
 - [x] README: install, setup, and usage (tools, views, accounts, config)
 - [ ] Slash commands (`/prs`, `/pr`) for quick access in the assistant
-- [ ] GitHub Pages docs site (mirror wyrm's `docs/` + Pages workflow): landing
-      page, install/setup guide, usage guide (tools/views/accounts), notification
-      config reference, CLI + TUI guide, screenshots/GIFs
+- [x] GitHub Pages docs site — `docs/index.html` (install, tools, CLI/TUI,
+      notification config) + `pages.yml` deploy; Pages enabled (Actions source)
+- [ ] Docs polish: screenshots/GIFs of the TUI + Agent Panel
 - [ ] Publish to Zed extension registry
 
 ## Phase 6 — Direct interaction (no AI)

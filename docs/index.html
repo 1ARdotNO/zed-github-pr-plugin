@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>zed-github-pr — GitHub PRs inside Zed</title>
+    <meta
+      name="description"
+      content="A Zed extension for managing GitHub pull requests: list, filter, review, and get notified — via an MCP context server, CLI, and TUI."
+    />
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <h1>zed-github-pr</h1>
+      <p class="tagline">Manage GitHub pull requests from inside Zed.</p>
+      <p class="links">
+        <a href="https://github.com/1ARdotNO/zed-github-pr-plugin">Repository</a> ·
+        <a href="https://github.com/1ARdotNO/zed-github-pr-plugin/blob/main/DESIGN.md">Design</a> ·
+        <a href="https://github.com/1ARdotNO/zed-github-pr-plugin/blob/main/TODO.md">Roadmap</a>
+      </p>
+    </header>
+
+    <main>
+      <section>
+        <h2>What it is</h2>
+        <p>
+          A Zed extension that ships an MCP context server for GitHub PRs: list and
+          filter pending PRs, inspect one in detail, switch between GitHub accounts,
+          get desktop notifications on updates, and open a review — from Zed's Agent
+          Panel, a terminal CLI, or an interactive dashboard.
+        </p>
+        <p>
+          Zed extensions can't draw custom panels, so the PR logic lives in a small
+          native binary (<code>ghpr-mcp</code>) that Zed launches as a context server.
+          The same binary is also a CLI and a TUI, so nothing forces you through an AI.
+        </p>
+      </section>
+
+      <section>
+        <h2>Install</h2>
+        <pre><code>gh auth login                       # authenticate (add more accounts anytime)
+cargo install --path crates/ghpr-mcp # build + install the ghpr-mcp binary
+# Zed → Extensions → Install Dev Extension → this repo's root folder</code></pre>
+      </section>
+
+      <section>
+        <h2>In Zed (Agent Panel)</h2>
+        <p>Ask the agent, e.g. <em>"list open PRs that need my review"</em>. It calls:</p>
+        <table>
+          <thead>
+            <tr><th>Tool</th><th>What it does</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>list_pull_requests</code></td><td>List/filter PRs (repo, state, author, assignee, label, search, view, account).</td></tr>
+            <tr><td><code>pr_detail</code></td><td>One PR's body, reviews, checks, and changed files.</td></tr>
+            <tr><td><code>list_accounts</code></td><td>The GitHub accounts <code>gh</code> is signed into.</td></tr>
+            <tr><td><code>review_pr</code></td><td>Assemble a review prompt (title + body + diff) from your template.</td></tr>
+            <tr><td><code>notification_settings</code></td><td>Show the effective notification config.</td></tr>
+          </tbody>
+        </table>
+        <p>
+          <strong>Named views</strong> (<code>view</code>): <code>needs-my-review</code>,
+          <code>mine</code>, <code>assigned-to-me</code>, <code>involves-me</code>.
+          <strong>Accounts</strong>: pass <code>account</code> to scope a request to one
+          of your <code>gh</code> logins, without changing the active one.
+        </p>
+      </section>
+
+      <section>
+        <h2>Terminal (CLI) &amp; dashboard</h2>
+        <pre><code>ghpr-mcp prs --view needs-my-review   # filtered PR list
+ghpr-mcp pr 42                        # one PR in detail (JSON)
+ghpr-mcp review 42                    # print a review prompt
+ghpr-mcp tui                          # interactive dashboard (repo from cwd)
+ghpr-mcp watch --repo owner/name      # poll + desktop-notify on changes</code></pre>
+        <p>
+          The <strong>dashboard</strong> shows open PRs with color-coded checks
+          (<code>5/7</code>), approval, age, and diff stats. Keys: <kbd>j</kbd>/<kbd>k</kbd>
+          move, <kbd>g</kbd>/<kbd>G</kbd> top/bottom, <kbd>Enter</kbd> open in browser,
+          <kbd>r</kbd> refresh, <kbd>?</kbd> help, <kbd>q</kbd> quit. Run it inside Zed's
+          terminal via the shipped <code>.zed/tasks.json</code> "GitHub PRs" task and a
+          keybinding.
+        </p>
+      </section>
+
+      <section>
+        <h2>Notifications</h2>
+        <p>
+          <code>ghpr-mcp watch</code> polls open PRs and fires native desktop
+          notifications (macOS <code>osascript</code>, Linux <code>notify-send</code>)
+          when one is approved &amp; ready, gets a comment, a new commit, or a checks
+          change. Configure it at <code>$GHPR_CONFIG</code> or
+          <code>~/.config/ghpr-mcp/config.json</code>:
+        </p>
+        <pre><code>{
+  "poll_interval_secs": 120,
+  "comment_cooldown_secs": 300,
+  "suppress_self": true,
+  "exclude_bots": true,
+  "silenced_users": ["some-bot"],
+  "desktop_notifications": true,
+  "events": { "approved_ready": true, "new_comment": true }
+}</code></pre>
+        <p>
+          Noise controls: never notify on your own actions, exclude bot/GitHub-App
+          comments, silence specific users, and debounce comment bursts.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>MIT licensed · Built with Rust, ratatui, and the GitHub CLI.</p>
+    </footer>
+  </body>
+</html>
