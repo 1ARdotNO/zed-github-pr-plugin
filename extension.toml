@@ -1,0 +1,9 @@
+id = "github-pr"
+name = "GitHub PR"
+version = "0.1.0"
+schema_version = 1
+authors = ["1ARdotNO"]
+description = "Manage GitHub pull requests from Zed — list, filter, and get notified, via an MCP context server."
+repository = "https://github.com/1ARdotNO/zed-github-pr-plugin"
+
+[context_servers.github-pr]

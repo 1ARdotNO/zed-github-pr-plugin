@@ -1,0 +1,8 @@
+/target
+**/*.rs.bk
+*.wasm
+.DS_Store
+/megalinter-reports
+report/
+extension.wasm
+grammars/

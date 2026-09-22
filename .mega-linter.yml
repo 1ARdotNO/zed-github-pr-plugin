@@ -1,0 +1,13 @@
+# MegaLinter configuration — https://megalinter.io
+APPLY_FIXES: none
+DISABLE_ERRORS: false
+SHOW_ELAPSED_TIME: true
+FILEIO_REPORTER: false
+# Rust fmt/clippy are already enforced by the CI job; avoid double-linting.
+DISABLE_LINTERS:
+  - RUST_CLIPPY
+  - REPOSITORY_TRIVY
+  - REPOSITORY_CHECKOV
+SPELL_CSPELL_DISABLE_ERRORS: true
+MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.yml
+YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml
