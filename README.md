@@ -124,6 +124,7 @@ Notification behaviour is configured in JSON at `$GHPR_CONFIG`, or
   "exclude_bots": true,
   "silenced_users": ["some-bot"],
   "desktop_notifications": true,
+  "tui_refresh_secs": 60,
   "events": { "approved_ready": true, "new_comment": true, "new_commit": true },
   "review": { "prompt_template": "Review {repo}#{number} — {title}\n{diff}" }
 }

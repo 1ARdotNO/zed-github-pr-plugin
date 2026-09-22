@@ -81,6 +81,8 @@ pub struct NotifyConfig {
     pub silenced_users: Vec<String>,
     /// Fire native desktop notifications (in addition to stdout) from `watch`.
     pub desktop_notifications: bool,
+    /// Auto-refresh interval for the `tui` dashboard (clamped to ≥30s).
+    pub tui_refresh_secs: u64,
     pub events: EventToggles,
     pub review: ReviewConfig,
 }
@@ -96,6 +98,7 @@ impl Default for NotifyConfig {
             exclude_bots: true,
             silenced_users: Vec::new(),
             desktop_notifications: true,
+            tui_refresh_secs: 60,
             events: EventToggles::default(),
             review: ReviewConfig::default(),
         }
@@ -263,6 +266,7 @@ mod tests {
     fn defaults_are_sane() {
         let c = NotifyConfig::default();
         assert_eq!(c.poll_interval_secs, 120);
+        assert_eq!(c.tui_refresh_secs, 60);
         assert!(c.suppress_self && c.exclude_bots);
         assert!(c.events.approved_ready && c.events.new_comment);
         assert!(c.silenced_users.is_empty());
