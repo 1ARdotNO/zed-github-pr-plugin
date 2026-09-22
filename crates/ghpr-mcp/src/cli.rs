@@ -182,13 +182,48 @@ fn watch_cycle(
                     continue;
                 }
             }
-            lines.push_str(&format_event(repo, &ev));
+            let line = format_event(repo, &ev);
+            fire_notification("GitHub PR", &line, cfg.desktop_notifications);
+            lines.push_str(&line);
             lines.push('\n');
         }
     }
 
     save_state(state_path, &next)?;
     Ok(lines.trim_end().to_string())
+}
+
+/// Fire a native desktop notification, if enabled and the platform is supported.
+/// Best-effort: a missing notifier is silently ignored (stdout still carries it).
+fn fire_notification(title: &str, body: &str, enabled: bool) {
+    if !enabled {
+        return;
+    }
+    if let Some((prog, args)) = os_notify_argv(title, body) {
+        let _ = std::process::Command::new(prog).args(args).status();
+    }
+}
+
+/// Build the platform notifier invocation. `None` on unsupported platforms.
+fn os_notify_argv(title: &str, body: &str) -> Option<(&'static str, Vec<String>)> {
+    if cfg!(target_os = "macos") {
+        let script = format!(
+            "display notification {} with title {}",
+            applescript_quote(body),
+            applescript_quote(title)
+        );
+        Some(("osascript", vec!["-e".to_string(), script]))
+    } else if cfg!(target_os = "linux") {
+        Some(("notify-send", vec![title.to_string(), body.to_string()]))
+    } else {
+        None
+    }
+}
+
+/// Quote a string as an AppleScript literal (double-quoted, backslash-escaped).
+fn applescript_quote(s: &str) -> String {
+    let escaped = s.replace('\\', "\\\\").replace('"', "\\\"");
+    format!("\"{escaped}\"")
 }
 
 fn format_event(repo: &str, e: &notify::Event) -> String {
@@ -353,6 +388,23 @@ mod tests {
             checks_from_rollup(&json!([{"state": "PENDING"}])),
             "pending"
         );
+    }
+
+    #[test]
+    fn applescript_quote_escapes() {
+        assert_eq!(applescript_quote(r#"a"b\c"#), r#""a\"b\\c""#);
+    }
+
+    #[test]
+    fn os_notify_argv_matches_platform() {
+        let argv = os_notify_argv("t", "b");
+        if cfg!(target_os = "macos") {
+            assert_eq!(argv.unwrap().0, "osascript");
+        } else if cfg!(target_os = "linux") {
+            let (prog, args) = argv.unwrap();
+            assert_eq!(prog, "notify-send");
+            assert_eq!(args, vec!["t".to_string(), "b".to_string()]);
+        }
     }
 
     #[test]
