@@ -98,3 +98,8 @@ itself — same core logic, non-AI front doors.
       r=refresh, R=force refetch, ?=help, q/Esc=quit
 - [ ] TUI auto-refresh (configurable, min 30s) + rate-limit awareness
       (ref: https://github.com/steffen-karlsson/githappens)
+- [ ] Easy in-Zed access to the TUI: ship a `.zed/tasks.json` task
+      ("GitHub PRs" → `ghpr-mcp tui`) + a suggested keybinding, so it opens in
+      Zed's integrated terminal as a persistent, one-key panel. (Extensions can't
+      spawn terminals; Zed's task system is the supported path — a terminal-control
+      API is only proposed upstream, revisit if it lands.)
