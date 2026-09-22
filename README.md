@@ -95,12 +95,16 @@ Notification behaviour is configured in JSON at `$GHPR_CONFIG`, or
   "suppress_self": true,
   "exclude_bots": true,
   "silenced_users": ["some-bot"],
+  "desktop_notifications": true,
   "events": { "approved_ready": true, "new_comment": true, "new_commit": true }
 }
 ```
 
-Run the `notification_settings` tool to see the effective, defaults-merged config.
-(The polling/delivery engine that consumes this is in progress — see the roadmap.)
+`ghpr-mcp watch` fires native desktop notifications (macOS `osascript`, Linux
+`notify-send`) for each change that passes your filters; set
+`desktop_notifications: false` for stdout only. Zed has no extension notification
+API, so these are OS-native. Run the `notification_settings` tool to see the
+effective, defaults-merged config.
 
 ## Development
 

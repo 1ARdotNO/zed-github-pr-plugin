@@ -43,6 +43,8 @@ pub struct NotifyConfig {
     pub suppress_self: bool,
     pub exclude_bots: bool,
     pub silenced_users: Vec<String>,
+    /// Fire native desktop notifications (in addition to stdout) from `watch`.
+    pub desktop_notifications: bool,
     pub events: EventToggles,
 }
 
@@ -56,6 +58,7 @@ impl Default for NotifyConfig {
             suppress_self: true,
             exclude_bots: true,
             silenced_users: Vec::new(),
+            desktop_notifications: true,
             events: EventToggles::default(),
         }
     }

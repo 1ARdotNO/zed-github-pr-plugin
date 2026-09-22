@@ -58,8 +58,8 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
       suppress-self, exclude-bots, silence list, event toggles) + serde load +
       `notification_settings` tool (defaults merged with the user's file)
 - [x] Notification filter/detection logic — `detect` + `should_notify` + `Cooldown`
-- [ ] Deliver via OS notification (terminal-notifier/notify-send) — `watch` prints
-      to stdout today; add native notifications + optional Agent-Panel surfacing
+- [x] Deliver via OS notification — `watch` fires native desktop notifications
+      (macOS osascript / Linux notify-send), gated by `desktop_notifications`
 - [ ] Fetch per-PR comments/commits (author + counts) so new-comment / new-commit /
       new-review fire with actor attribution (list JSON lacks these fields)
 
