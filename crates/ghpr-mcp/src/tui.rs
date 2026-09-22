@@ -23,6 +23,8 @@ pub struct PrRow {
     pub author: String,
     pub approval: String, // APPROVED | CHANGES_REQUESTED | REVIEW_REQUIRED | ""
     pub checks: String,   // passing | failing | pending | ""
+    pub checks_passed: u32,
+    pub checks_total: u32,
     pub age: String,
     pub additions: i64,
     pub deletions: i64,
@@ -59,6 +61,8 @@ pub fn build_rows(json: &str, now: DateTime<Utc>) -> Result<Vec<PrRow>, String> 
             author: pr["author"]["login"].as_str().unwrap_or("?").to_string(),
             approval: pr["reviewDecision"].as_str().unwrap_or("").to_string(),
             checks: cli::checks_from_rollup(&pr["statusCheckRollup"]),
+            checks_passed: cli::check_counts(&pr["statusCheckRollup"]).0,
+            checks_total: cli::check_counts(&pr["statusCheckRollup"]).1,
             age: fmt_age(pr["updatedAt"].as_str().unwrap_or(""), now),
             additions: pr["additions"].as_i64().unwrap_or(0),
             deletions: pr["deletions"].as_i64().unwrap_or(0),
@@ -250,9 +254,14 @@ fn render(f: &mut Frame, app: &mut App) {
     let header = Row::new(["#", "checks", "review", "age", "±", "title", "author"])
         .style(Style::default().add_modifier(Modifier::BOLD));
     let rows = app.rows.iter().map(|r| {
+        let checks_cell = if r.checks_total > 0 {
+            format!("{}/{}", r.checks_passed, r.checks_total)
+        } else {
+            "–".to_string()
+        };
         Row::new(vec![
             Cell::from(r.number.to_string()),
-            Cell::from("●").style(Style::default().fg(checks_color(&r.checks))),
+            Cell::from(checks_cell).style(Style::default().fg(checks_color(&r.checks))),
             Cell::from(approval_label(&r.approval))
                 .style(Style::default().fg(approval_color(&r.approval))),
             Cell::from(r.age.clone()),
