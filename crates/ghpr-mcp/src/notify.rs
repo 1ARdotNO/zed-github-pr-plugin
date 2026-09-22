@@ -163,34 +163,41 @@ pub struct Event {
     pub actor_is_bot: bool,
 }
 
-/// Diff two snapshots of the same PR into the events they imply.
+/// Diff two snapshots of the same PR into the events they imply. Only comment
+/// events carry an actor (the commenter); the list JSON doesn't attribute the
+/// others, so they stay actor-less (and thus never suppressed by actor filters).
 pub fn detect(prev: &PrSnapshot, curr: &PrSnapshot) -> Vec<Event> {
     let mut out = Vec::new();
-    let mk = |kind| Event {
+    let plain = |kind| Event {
         kind,
         pr_number: curr.number,
-        actor: curr.last_actor.clone(),
-        actor_is_bot: curr.last_actor_is_bot,
+        actor: String::new(),
+        actor_is_bot: false,
     };
 
     if prev.review_decision != curr.review_decision {
         match curr.review_decision.as_str() {
             // Approved *and* not blocked by checks == ready to merge.
             "APPROVED" if curr.checks != "failing" && curr.checks != "pending" => {
-                out.push(mk(EventKind::ApprovedReady))
+                out.push(plain(EventKind::ApprovedReady))
             }
-            "CHANGES_REQUESTED" => out.push(mk(EventKind::NewReview)),
+            "CHANGES_REQUESTED" => out.push(plain(EventKind::NewReview)),
             _ => {}
         }
     }
     if !prev.head_sha.is_empty() && prev.head_sha != curr.head_sha {
-        out.push(mk(EventKind::NewCommit));
+        out.push(plain(EventKind::NewCommit));
     }
     if !curr.checks.is_empty() && prev.checks != curr.checks {
-        out.push(mk(EventKind::CiStatus));
+        out.push(plain(EventKind::CiStatus));
     }
     if curr.comment_count > prev.comment_count {
-        out.push(mk(EventKind::NewComment));
+        out.push(Event {
+            kind: EventKind::NewComment,
+            pr_number: curr.number,
+            actor: curr.last_actor.clone(),
+            actor_is_bot: curr.last_actor_is_bot,
+        });
     }
     out
 }
@@ -337,7 +344,7 @@ mod tests {
     }
 
     #[test]
-    fn detects_new_commit_and_ci_and_comment() {
+    fn detects_new_commit_and_ci_and_comment_with_attribution() {
         let mut prev = snap(2);
         prev.head_sha = "aaa".into();
         prev.checks = "pending".into();
@@ -345,10 +352,22 @@ mod tests {
         curr.head_sha = "bbb".into();
         curr.checks = "passing".into();
         curr.comment_count = 1;
-        let kinds: Vec<_> = detect(&prev, &curr).into_iter().map(|e| e.kind).collect();
+        curr.last_actor = "bob".into();
+        let events = detect(&prev, &curr);
+        let kinds: Vec<_> = events.iter().map(|e| e.kind).collect();
         assert!(kinds.contains(&EventKind::NewCommit));
         assert!(kinds.contains(&EventKind::CiStatus));
-        assert!(kinds.contains(&EventKind::NewComment));
+        // Only the comment event carries the actor.
+        let comment = events
+            .iter()
+            .find(|e| e.kind == EventKind::NewComment)
+            .unwrap();
+        assert_eq!(comment.actor, "bob");
+        let commit = events
+            .iter()
+            .find(|e| e.kind == EventKind::NewCommit)
+            .unwrap();
+        assert_eq!(commit.actor, "");
     }
 
     #[test]
