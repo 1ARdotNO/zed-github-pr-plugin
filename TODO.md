@@ -28,6 +28,9 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
 - [x] Repo automerge infra: auto-merge + branch protection (required `build` check)
 - [x] Private vulnerability reporting enabled on the repo
 - [x] Responsible-disclosure security page (SECURITY.md + posture), jync-style
+- [x] Green CI: commit `zed-ghpr` Cargo.lock (wasm `--locked`); drop flaky/redundant
+      grype; enable Discussions so the issue-template link resolves
+- [ ] Add `extension (wasm)` to required checks once green (strengthen the gate)
 - [ ] Wire the MCP binary auto-download into the extension (GitHub releases)
 
 ## Phase 1 — GitHub auth + accounts
