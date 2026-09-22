@@ -4,10 +4,13 @@ DISABLE_ERRORS: false
 SHOW_ELAPSED_TIME: true
 FILEIO_REPORTER: false
 # Rust fmt/clippy are already enforced by the CI job; avoid double-linting.
+# Trivy/CodeQL run as dedicated workflows; grype here is redundant and its vuln-DB
+# download is flaky in CI, so drop the overlapping repository scanners.
 DISABLE_LINTERS:
   - RUST_CLIPPY
   - REPOSITORY_TRIVY
   - REPOSITORY_CHECKOV
+  - REPOSITORY_GRYPE
 SPELL_CSPELL_DISABLE_ERRORS: true
 MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.yml
 YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml
