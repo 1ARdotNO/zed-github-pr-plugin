@@ -31,6 +31,8 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
 - [x] Green CI: commit `zed-ghpr` Cargo.lock (wasm `--locked`); drop flaky/redundant
       grype; enable Discussions so the issue-template link resolves
 - [x] Add `extension (wasm)` to required checks (gate = build + wasm)
+- [x] Harden CI checkouts (`persist-credentials: false`) — fixes zizmor artipacked
+- [ ] Make MegaLinter a required check once it's reliably green
 - [ ] Wire the MCP binary auto-download into the extension (GitHub releases)
 
 ## Phase 1 — GitHub auth + accounts
