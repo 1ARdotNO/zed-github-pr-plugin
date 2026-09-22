@@ -6,11 +6,15 @@ FILEIO_REPORTER: false
 # Rust fmt/clippy are already enforced by the CI job; avoid double-linting.
 # Trivy/CodeQL run as dedicated workflows; grype here is redundant and its vuln-DB
 # download is flaky in CI, so drop the overlapping repository scanners.
+# ACTION_ZIZMOR: the bundled zizmor v1.25.0 crashes its 'artipacked' audit on
+# ci.yml ("no audit was performed"); actionlint still validates workflows.
+# Re-enable when MegaLinter bundles a fixed zizmor.
 DISABLE_LINTERS:
   - RUST_CLIPPY
   - REPOSITORY_TRIVY
   - REPOSITORY_CHECKOV
   - REPOSITORY_GRYPE
+  - ACTION_ZIZMOR
 SPELL_CSPELL_DISABLE_ERRORS: true
 MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.yml
 YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml
