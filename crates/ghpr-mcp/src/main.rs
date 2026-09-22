@@ -6,6 +6,7 @@
 use std::io::{self, BufRead, Write};
 
 mod gh;
+mod notify;
 mod rpc;
 mod tools;
 

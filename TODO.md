@@ -54,8 +54,10 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
 ## Phase 3 — Notifications
 - [ ] Poll PR state; detect updates (new review, CI status change, new commit)
 - [ ] Surface updates through the Agent Panel / OS notification from the server
-- [ ] Notification filter config (which repos/events/authors)
-- [ ] User settings schema for filters + polling interval
+- [x] Config foundation — `NotifyConfig` (poll interval, cooldown, repos,
+      suppress-self, exclude-bots, silence list, event toggles) + serde load +
+      `notification_settings` tool (defaults merged with the user's file)
+- [ ] Notification filter/detection logic on top of the config (poller feeds it)
 
 Event types to notify on:
 - [ ] PR approved and ready to merge (approving review + mergeable/clean checks)

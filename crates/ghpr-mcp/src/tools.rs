@@ -2,7 +2,7 @@
 
 use serde_json::{json, Value};
 
-use crate::gh;
+use crate::{gh, notify};
 
 /// A reusable schema fragment: the optional account selector.
 fn account_prop() -> Value {
@@ -48,6 +48,16 @@ pub fn list() -> Vec<Value> {
             "description": "List the GitHub accounts the gh CLI is authenticated as (for choosing between git accounts).",
             "inputSchema": { "type": "object", "properties": {} }
         }),
+        json!({
+            "name": "notification_settings",
+            "description": "Show the effective PR-notification config (defaults merged with the user's config file).",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "path": { "type": "string", "description": "config file path; defaults to $GHPR_CONFIG or ~/.config/ghpr-mcp/config.json" }
+                }
+            }
+        }),
     ]
 }
 
@@ -68,6 +78,11 @@ pub fn call(params: Option<&Value>) -> Result<Value, String> {
             Err(e) => Err(e),
         },
         "list_accounts" => gh::run(&["auth".into(), "status".into()]),
+        "notification_settings" => {
+            let path = args.get("path").and_then(Value::as_str);
+            notify::NotifyConfig::load(&notify::config_path(path))
+                .and_then(|c| serde_json::to_string_pretty(&c).map_err(|e| e.to_string()))
+        }
         other => return Err(format!("unknown tool: {other}")),
     };
 
