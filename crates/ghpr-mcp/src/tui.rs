@@ -2,7 +2,7 @@
 //! door. Data/format helpers are pure and tested; the event loop is thin.
 
 use std::io::IsTerminal;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use chrono::{DateTime, Utc};
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind};
@@ -13,7 +13,7 @@ use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState};
 use ratatui::Frame;
 use serde_json::Value;
 
-use crate::{cli, gh};
+use crate::{cli, gh, notify};
 
 /// One row of the dashboard, derived from `gh pr list` JSON.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -204,15 +204,32 @@ pub fn run(repo: Option<&str>, account: Option<&str>) -> Result<String, String> 
         app.state.select(Some(0));
     }
 
+    // Auto-refresh interval from config (min 30s), used by the event loop.
+    let refresh = Duration::from_secs(
+        notify::NotifyConfig::load(&notify::config_path(None))
+            .unwrap_or_default()
+            .tui_refresh_secs
+            .max(30),
+    );
+
     let mut terminal = ratatui::init();
-    let result = event_loop(&mut terminal, &mut app);
+    let result = event_loop(&mut terminal, &mut app, refresh);
     ratatui::restore();
     result.map(|_| String::new()).map_err(|e| e.to_string())
 }
 
-fn event_loop(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io::Result<()> {
+fn event_loop(
+    terminal: &mut ratatui::DefaultTerminal,
+    app: &mut App,
+    refresh: Duration,
+) -> std::io::Result<()> {
+    let mut last_refresh = Instant::now();
     loop {
         terminal.draw(|f| render(f, app))?;
+        if last_refresh.elapsed() >= refresh {
+            app.refresh();
+            last_refresh = Instant::now();
+        }
         if !event::poll(Duration::from_millis(250))? {
             continue;
         }
@@ -226,7 +243,10 @@ fn event_loop(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io
                 KeyCode::Char('k') | KeyCode::Up => app.step(-1),
                 KeyCode::Char('g') => app.jump(false),
                 KeyCode::Char('G') => app.jump(true),
-                KeyCode::Char('r') | KeyCode::Char('R') => app.refresh(),
+                KeyCode::Char('r') | KeyCode::Char('R') => {
+                    app.refresh();
+                    last_refresh = Instant::now();
+                }
                 KeyCode::Char('?') => app.help = !app.help,
                 KeyCode::Enter => app.open_selected(),
                 _ => {}
