@@ -104,7 +104,8 @@ itself — same core logic, non-AI front doors.
       r=refresh, ?=help, q/Esc=quit
 - [x] TUI: check pass/total counts (e.g. 5/7) in the checks column
 - [x] TUI auto-refresh — `tui_refresh_secs` config (clamped ≥30s), resets on `r`
-- [ ] TUI polish: branch-up-to-date column, rate-limit awareness, sortable columns
+- [x] TUI sortable columns — `s` cycles number/age/checks/size
+- [ ] TUI polish: branch-up-to-date column, rate-limit awareness
       (ref: https://github.com/steffen-karlsson/githappens)
 - [x] Easy in-Zed access to the TUI — `.zed/tasks.json` "GitHub PRs" task runs
       `ghpr-mcp tui` (repo inferred from the worktree); README documents a keybind
