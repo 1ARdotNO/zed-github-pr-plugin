@@ -53,6 +53,19 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
 - [ ] Notification filter config (which repos/events/authors)
 - [ ] User settings schema for filters + polling interval
 
+Event types to notify on:
+- [ ] PR approved and ready to merge (approving review + mergeable/clean checks)
+- [ ] New comment on a PR (review comment or issue comment)
+
+Noise controls (esp. for comments):
+- [ ] Comment cooldown/debounce — coalesce a burst of comments from one actor
+      into a single notification within a window (configurable)
+- [ ] Never notify on the user's own actions — suppress events the active
+      account authored
+- [ ] Exclude bot / GitHub App comments (opt-in; match `author.type == "Bot"` /
+      app slugs), configurable
+- [ ] Per-user silence list — mute comment notifications from specific logins
+
 ## Phase 4 — Polish
 - [ ] Slash commands (`/prs`, `/pr`) for quick access in the assistant
 - [ ] Docs site / screenshots
