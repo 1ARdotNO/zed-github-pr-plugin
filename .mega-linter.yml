@@ -19,5 +19,8 @@ SPELL_CSPELL_DISABLE_ERRORS: true
 # jscpd defaults to a 0% duplication threshold, which fails on idiomatic
 # repetition (clap arg blocks, similar tool schemas). Allow a small budget.
 COPYPASTE_JSCPD_ARGUMENTS: "--threshold 5"
+# v8r matches .zed/tasks.json to the VS Code tasks schema by filename and wrongly
+# flags Zed's format; exclude .zed (renovate.json is still schema-validated).
+JSON_V8R_FILTER_REGEX_EXCLUDE: (\.zed/)
 MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.yml
 YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml
