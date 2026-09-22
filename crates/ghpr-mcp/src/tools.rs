@@ -24,6 +24,7 @@ pub fn list() -> Vec<Value> {
                     "assignee": { "type": "string", "description": "filter by assignee login (or @me)" },
                     "label": { "type": "string" },
                     "search": { "type": "string", "description": "gh search query, e.g. 'review-requested:@me'" },
+                    "view": { "type": "string", "enum": ["needs-my-review", "mine", "assigned-to-me", "involves-me"], "description": "named preset; merges with search" },
                     "limit": { "type": "integer", "default": 30 },
                     "account": account_prop()
                 }

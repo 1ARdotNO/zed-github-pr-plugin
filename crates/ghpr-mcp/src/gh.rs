@@ -25,13 +25,30 @@ pub fn pr_list_args(params: &Value) -> Vec<String> {
         ("author", "--author"),
         ("assignee", "--assignee"),
         ("label", "--label"),
-        ("search", "--search"),
     ] {
         if let Some(v) = params.get(key).and_then(Value::as_str) {
             args.push(flag.into());
             args.push(v.into());
         }
     }
+
+    // A named `view` expands to a search qualifier and merges with any explicit
+    // `search`, so callers can combine a preset with extra filters.
+    let view = params
+        .get("view")
+        .and_then(Value::as_str)
+        .and_then(view_qualifier);
+    let explicit = params.get("search").and_then(Value::as_str);
+    let search = [view, explicit]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
+        .join(" ");
+    if !search.is_empty() {
+        args.push("--search".into());
+        args.push(search);
+    }
+
     let limit = params.get("limit").and_then(Value::as_i64).unwrap_or(30);
     args.push("--limit".into());
     args.push(limit.to_string());
@@ -39,6 +56,18 @@ pub fn pr_list_args(params: &Value) -> Vec<String> {
     args.push("--json".into());
     args.push(PR_LIST_FIELDS.into());
     args
+}
+
+/// Map a named view to a GitHub search qualifier. Unknown views yield `None`,
+/// so they're simply ignored rather than erroring.
+pub fn view_qualifier(view: &str) -> Option<&'static str> {
+    match view {
+        "needs-my-review" => Some("review-requested:@me"),
+        "mine" => Some("author:@me"),
+        "assigned-to-me" => Some("assignee:@me"),
+        "involves-me" => Some("involves:@me"),
+        _ => None,
+    }
 }
 
 /// Build the argument vector for `gh pr view <number>`. Returns an error string
@@ -137,6 +166,28 @@ mod tests {
         assert!(args.windows(2).any(|w| w == ["--author", "1ardotno"]));
         assert!(args.windows(2).any(|w| w == ["--state", "all"]));
         assert!(args.windows(2).any(|w| w == ["--limit", "5"]));
+    }
+
+    #[test]
+    fn view_preset_becomes_a_search_qualifier() {
+        let args = pr_list_args(&json!({ "view": "needs-my-review" }));
+        assert!(args
+            .windows(2)
+            .any(|w| w == ["--search", "review-requested:@me"]));
+    }
+
+    #[test]
+    fn view_and_explicit_search_merge() {
+        let args = pr_list_args(&json!({ "view": "mine", "search": "is:draft" }));
+        assert!(args
+            .windows(2)
+            .any(|w| w == ["--search", "author:@me is:draft"]));
+    }
+
+    #[test]
+    fn unknown_view_is_ignored() {
+        let args = pr_list_args(&json!({ "view": "bogus" }));
+        assert!(!args.iter().any(|a| a == "--search"));
     }
 
     #[test]
