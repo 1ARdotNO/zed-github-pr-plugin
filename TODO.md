@@ -25,7 +25,9 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
 - [x] DESIGN.md — architecture + Zed API constraints
 - [x] First commit + push (seed main)
 - [x] MVP MCP server: `list_pull_requests` + `list_accounts` via `gh` (tested)
-- [ ] Repo automerge infra: enable auto-merge + branch protection (required checks)
+- [x] Repo automerge infra: auto-merge + branch protection (required `build` check)
+- [x] Private vulnerability reporting enabled on the repo
+- [x] Responsible-disclosure security page (SECURITY.md + posture), jync-style
 - [ ] Wire the MCP binary auto-download into the extension (GitHub releases)
 
 ## Phase 1 — GitHub auth + accounts
