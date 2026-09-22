@@ -58,7 +58,47 @@ pub fn list() -> Vec<Value> {
                 }
             }
         }),
+        json!({
+            "name": "review_pr",
+            "description": "Assemble a review prompt for a PR (title, body, diff) from the configured template — run the result to review it.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "number": { "type": "integer", "description": "the PR number" },
+                    "repo": { "type": "string", "description": "owner/name; omit to use the current repo" },
+                    "account": account_prop()
+                },
+                "required": ["number"]
+            }
+        }),
     ]
+}
+
+/// Gather a PR's title/body/diff and render the configured review prompt. Shared
+/// by the `review_pr` tool and the `review` CLI subcommand.
+pub fn assemble_review(
+    number: i64,
+    repo: Option<&str>,
+    account: Option<&str>,
+) -> Result<String, String> {
+    let cfg = notify::NotifyConfig::load(&notify::config_path(None))?;
+    let mut view = json!({ "number": number });
+    if let Some(r) = repo {
+        view["repo"] = Value::String(r.to_string());
+    }
+    let detail = gh::run_as(&gh::pr_view_args(&view)?, account)?;
+    let d: Value = serde_json::from_str(&detail).map_err(|e| e.to_string())?;
+    let title = d["title"].as_str().unwrap_or("");
+    let body = d["body"].as_str().unwrap_or("");
+    let diff = gh::run_as(&gh::pr_diff_args(number, repo), account)?;
+    Ok(notify::render_review_prompt(
+        &cfg.review.prompt_template,
+        repo.unwrap_or(""),
+        number,
+        title,
+        body,
+        &diff,
+    ))
 }
 
 /// Dispatch a `tools/call` request.
@@ -83,6 +123,10 @@ pub fn call(params: Option<&Value>) -> Result<Value, String> {
             notify::NotifyConfig::load(&notify::config_path(path))
                 .and_then(|c| serde_json::to_string_pretty(&c).map_err(|e| e.to_string()))
         }
+        "review_pr" => match args.get("number").and_then(Value::as_i64) {
+            Some(n) => assemble_review(n, args.get("repo").and_then(Value::as_str), account),
+            None => Err("missing required integer param: number".to_string()),
+        },
         other => return Err(format!("unknown tool: {other}")),
     };
 

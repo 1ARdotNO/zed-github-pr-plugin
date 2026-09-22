@@ -88,6 +88,16 @@ pub fn pr_view_args(params: &Value) -> Result<Vec<String>, String> {
     Ok(args)
 }
 
+/// Build the argument vector for `gh pr diff <number>`.
+pub fn pr_diff_args(number: i64, repo: Option<&str>) -> Vec<String> {
+    let mut args = vec!["pr".into(), "diff".into(), number.to_string()];
+    if let Some(r) = repo {
+        args.push("--repo".into());
+        args.push(r.into());
+    }
+    args
+}
+
 /// `gh auth token --user <login>` — prints that account's token without changing
 /// the globally-active account, so we can scope a request per account.
 pub fn token_args(account: &str) -> Vec<String> {

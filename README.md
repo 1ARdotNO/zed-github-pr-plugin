@@ -74,13 +74,18 @@ ghpr-mcp prs --view needs-my-review     # filtered PR list
 ghpr-mcp prs --repo owner/name --state all --account other-login
 ghpr-mcp pr 42                          # one PR in detail (JSON)
 ghpr-mcp accounts                       # authenticated gh accounts
-ghpr-mcp watch --repo owner/name        # poll and print PR changes (--once for one cycle)
+ghpr-mcp review 42 --repo owner/name    # print a review prompt (title+body+diff)
+ghpr-mcp watch --repo owner/name        # poll and notify on PR changes (--once for one cycle)
 ```
 
-`watch` diffs each poll against a saved snapshot and prints notification-worthy
-changes (approved & ready, checks status, …), applying your config's noise controls
-(suppress-self, exclude-bots, silence list, comment cooldown). Native OS
-notifications are on the roadmap; today it writes to stdout.
+`watch` diffs each poll against a saved snapshot, fires notifications for
+notification-worthy changes (approved & ready, checks status, …), and applies your
+config's noise controls (suppress-self, exclude-bots, silence list, comment cooldown).
+
+`review` (and the `review_pr` MCP tool) render `review.prompt_template` from your
+config — placeholders `{repo}`, `{number}`, `{title}`, `{body}`, `{diff}`. In Zed,
+ask the agent to "review PR 42" and it runs the assembled prompt; from a terminal,
+pipe the output into your reviewer of choice.
 
 ## Configuration
 
@@ -96,7 +101,8 @@ Notification behaviour is configured in JSON at `$GHPR_CONFIG`, or
   "exclude_bots": true,
   "silenced_users": ["some-bot"],
   "desktop_notifications": true,
-  "events": { "approved_ready": true, "new_comment": true, "new_commit": true }
+  "events": { "approved_ready": true, "new_comment": true, "new_commit": true },
+  "review": { "prompt_template": "Review {repo}#{number} — {title}\n{diff}" }
 }
 ```
 

@@ -44,6 +44,14 @@ pub enum Cmd {
     },
     /// List the GitHub accounts gh is authenticated as.
     Accounts,
+    /// Print a review prompt for a PR (title, body, diff) from the config template.
+    Review {
+        number: i64,
+        #[arg(long)]
+        repo: Option<String>,
+        #[arg(long)]
+        account: Option<String>,
+    },
     /// Watch a repo's open PRs and print notification-worthy changes each poll.
     Watch {
         #[arg(long)]
@@ -102,6 +110,11 @@ pub fn run(cmd: Cmd) -> Result<String, String> {
             gh::run_as(&args, account.as_deref())
         }
         Cmd::Accounts => gh::run(&["auth".into(), "status".into()]),
+        Cmd::Review {
+            number,
+            repo,
+            account,
+        } => crate::tools::assemble_review(number, repo.as_deref(), account.as_deref()),
         Cmd::Watch {
             repo,
             account,
