@@ -37,7 +37,7 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
 - [x] osv-scanner: ignore low/unmaintained transitive advisories from ratatui
       (lru, paste) via `osv-scanner.toml`; Trivy still gates HIGH/CRITICAL
 - [ ] Drop the osv ignores once ratatui ships fixed lru/paste (revisit 2027-03)
-- [ ] Make MegaLinter a required check once it's reliably green across a few runs
+- [x] MegaLinter is now a required check (gate = build + wasm + megalinter)
 - [x] Release workflow — tag `vX.Y.Z` builds `ghpr-mcp` for linux/macOS (x64+arm64)
       and publishes to GitHub Releases (taiki-e actions, mirrors wyrm)
 - [x] Extension-side: download the release binary per-platform (linux/macOS via
