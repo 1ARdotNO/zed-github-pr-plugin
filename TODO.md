@@ -65,7 +65,13 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
       `notification_settings` tool (defaults merged with the user's file)
 - [x] Notification filter/detection logic — `detect` + `should_notify` + `Cooldown`
 - [x] Deliver via OS notification — `watch` fires native desktop notifications
-      (macOS osascript / Linux notify-send), gated by `desktop_notifications`
+      (macOS osascript / Linux notify-send), gated by `desktop_notifications`.
+      Why OS-native: Zed exposes NO notification API to extensions or MCP/context
+      servers (verified in zed_extension_api 0.7 WIT — no toast/message/alert), and
+      MCP server→client notifications aren't surfaced as Zed toasts. The native
+      `ghpr-mcp` process is the only surface that can push a user-facing alert.
+- [ ] Revisit: switch to Zed-native notifications if Zed ever adds a notification
+      API for extensions, or surfaces MCP notifications as UI toasts
 - [x] Comment/commit attribution — `gh pr list` returns `comments` + `headRefOid`
       in one call; snapshots carry comment count, head SHA, last commenter (+bot)
 
