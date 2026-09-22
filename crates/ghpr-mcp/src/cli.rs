@@ -44,10 +44,10 @@ pub enum Cmd {
     },
     /// List the GitHub accounts gh is authenticated as.
     Accounts,
-    /// Interactive terminal dashboard of a repo's open PRs.
+    /// Interactive terminal dashboard of open PRs (repo inferred from cwd if omitted).
     Tui {
         #[arg(long)]
-        repo: String,
+        repo: Option<String>,
         #[arg(long)]
         account: Option<String>,
     },
@@ -117,7 +117,7 @@ pub fn run(cmd: Cmd) -> Result<String, String> {
             gh::run_as(&args, account.as_deref())
         }
         Cmd::Accounts => gh::run(&["auth".into(), "status".into()]),
-        Cmd::Tui { repo, account } => crate::tui::run(&repo, account.as_deref()),
+        Cmd::Tui { repo, account } => crate::tui::run(repo.as_deref(), account.as_deref()),
         Cmd::Review {
             number,
             repo,

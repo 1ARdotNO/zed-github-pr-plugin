@@ -1,0 +1,14 @@
+// Zed tasks for this repo. "GitHub PRs" opens the ghpr-mcp dashboard in Zed's
+// integrated terminal; bind it to a key (see README) for one-press access.
+// The repo is inferred from the worktree, so this task is repo-agnostic.
+[
+  {
+    "label": "GitHub PRs",
+    "command": "ghpr-mcp",
+    "args": ["tui"],
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "hide": "on_success"
+  }
+]

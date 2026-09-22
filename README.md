@@ -75,13 +75,28 @@ ghpr-mcp prs --repo owner/name --state all --account other-login
 ghpr-mcp pr 42                          # one PR in detail (JSON)
 ghpr-mcp accounts                       # authenticated gh accounts
 ghpr-mcp review 42 --repo owner/name    # print a review prompt (title+body+diff)
-ghpr-mcp tui --repo owner/name          # interactive PR dashboard (needs a terminal)
+ghpr-mcp tui                            # interactive PR dashboard (repo inferred from cwd)
 ghpr-mcp watch --repo owner/name        # poll and notify on PR changes (--once for one cycle)
 ```
 
 `tui` is a keyboard-driven dashboard of open PRs (color-coded checks, approval,
 age, diff stats): `j`/`k` or arrows to move, `g`/`G` for top/bottom, `Enter` to
-open in the browser, `r` to refresh, `?` for help, `q` to quit.
+open in the browser, `r` to refresh, `?` for help, `q` to quit. With no `--repo`
+it uses the current repo (gh infers it from the working directory).
+
+### Dashboard inside Zed
+
+Zed extensions can't draw panels, but you can run the dashboard in Zed's built-in
+terminal as a persistent, one-key panel. This repo ships a [`.zed/tasks.json`](.zed/tasks.json)
+task named **"GitHub PRs"** (runs `ghpr-mcp tui` in the worktree, so it targets
+whatever repo you have open). Bind it to a key in your Zed `keymap.json`:
+
+```json
+[{ "bindings": { "cmd-shift-g": ["task::Spawn", { "task_name": "GitHub PRs" }] } }]
+```
+
+Now `cmd-shift-g` opens the PR dashboard in Zed's terminal. (Extensions can't spawn
+terminals themselves; Zed's task system is the supported path — see the roadmap.)
 
 `watch` diffs each poll against a saved snapshot, fires notifications for
 notification-worthy changes (approved & ready, checks status, …), and applies your
