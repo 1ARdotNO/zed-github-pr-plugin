@@ -107,8 +107,7 @@ itself — same core logic, non-AI front doors.
 - [x] TUI sortable columns — `s` cycles number/age/checks/size
 - [x] TUI merge-state column — conflict / behind / draft (from mergeable +
       mergeStateStatus), color-coded
-- [ ] TUI polish: rate-limit awareness
-      (ref: https://github.com/steffen-karlsson/githappens)
+- [x] TUI rate-limit awareness — status line shows GraphQL API remaining/limit
 - [x] Easy in-Zed access to the TUI — `.zed/tasks.json` "GitHub PRs" task runs
       `ghpr-mcp tui` (repo inferred from the worktree); README documents a keybind
       to open it in Zed's integrated terminal

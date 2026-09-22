@@ -131,6 +131,14 @@ pub fn apply_sort(rows: &mut [PrRow], key: SortKey) {
     }
 }
 
+/// Parse `gh api rate_limit` into `(remaining, limit)` for the GraphQL API that
+/// `gh pr list` uses. The rate_limit endpoint itself doesn't count against it.
+pub fn parse_rate_limit(json: &str) -> Option<(u64, u64)> {
+    let v: Value = serde_json::from_str(json).ok()?;
+    let g = &v["resources"]["graphql"];
+    Some((g["remaining"].as_u64()?, g["limit"].as_u64()?))
+}
+
 /// Parse `gh pr list` JSON into dashboard rows.
 pub fn build_rows(json: &str, now: DateTime<Utc>) -> Result<Vec<PrRow>, String> {
     let arr: Value = serde_json::from_str(json).map_err(|e| e.to_string())?;
@@ -219,12 +227,25 @@ impl App {
         self.repo.as_deref().unwrap_or("current repo")
     }
 
+    /// Best-effort GraphQL rate-limit `(remaining, limit)`; `None` on any failure.
+    fn fetch_rate(account: Option<&str>) -> Option<(u64, u64)> {
+        let out = gh::run_as(&["api".to_string(), "rate_limit".to_string()], account).ok()?;
+        parse_rate_limit(&out)
+    }
+
     fn refresh(&mut self) {
         match Self::fetch(self.repo.as_deref(), self.account.as_deref()) {
             Ok(mut rows) => {
                 apply_sort(&mut rows, self.sort);
                 self.rows = rows;
-                self.status = format!("{} open PRs · sort: {}", self.rows.len(), self.sort.label());
+                let rate = Self::fetch_rate(self.account.as_deref())
+                    .map(|(r, l)| format!(" · API {r}/{l}"))
+                    .unwrap_or_default();
+                self.status = format!(
+                    "{} open PRs · sort: {}{rate}",
+                    self.rows.len(),
+                    self.sort.label()
+                );
                 if self.state.selected().unwrap_or(0) >= self.rows.len() {
                     self.state
                         .select(if self.rows.is_empty() { None } else { Some(0) });
@@ -517,6 +538,14 @@ mod tests {
     fn sort_key_cycles() {
         assert_eq!(SortKey::Number.next(), SortKey::Age);
         assert_eq!(SortKey::Churn.next(), SortKey::Number);
+    }
+
+    #[test]
+    fn rate_limit_parses_graphql() {
+        let json = r#"{"resources": {"graphql": {"remaining": 4980, "limit": 5000}}}"#;
+        assert_eq!(parse_rate_limit(json), Some((4980, 5000)));
+        assert_eq!(parse_rate_limit("{}"), None);
+        assert_eq!(parse_rate_limit("nope"), None);
     }
 
     #[test]
