@@ -26,6 +26,8 @@ pub struct PrRow {
     pub checks_passed: u32,
     pub checks_total: u32,
     pub age: String,
+    /// Seconds since last update; kept for sorting (the string is display-only).
+    pub age_secs: i64,
     pub additions: i64,
     pub deletions: i64,
     pub url: String,
@@ -34,18 +36,75 @@ pub struct PrRow {
 const LIST_FIELDS: &str =
     "number,title,author,reviewDecision,statusCheckRollup,updatedAt,additions,deletions,url";
 
+/// Seconds since `updated` (RFC3339); `i64::MAX` if unparseable (sorts last).
+pub fn age_seconds(updated: &str, now: DateTime<Utc>) -> i64 {
+    match DateTime::parse_from_rfc3339(updated) {
+        Ok(then) => (now - then.with_timezone(&Utc)).num_seconds().max(0),
+        Err(_) => i64::MAX,
+    }
+}
+
 /// Relative age like `2d`, `5h`, `3m` from an RFC3339 timestamp.
 pub fn fmt_age(updated: &str, now: DateTime<Utc>) -> String {
-    let Ok(then) = DateTime::parse_from_rfc3339(updated) else {
-        return String::new();
-    };
-    let secs = (now - then.with_timezone(&Utc)).num_seconds().max(0);
-    if secs < 3600 {
+    let secs = age_seconds(updated, now);
+    if secs == i64::MAX {
+        String::new()
+    } else if secs < 3600 {
         format!("{}m", secs / 60)
     } else if secs < 86_400 {
         format!("{}h", secs / 3600)
     } else {
         format!("{}d", secs / 86_400)
+    }
+}
+
+/// How the dashboard is sorted; cycled with the `s` key.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SortKey {
+    Number,
+    Age,
+    Checks,
+    Churn,
+}
+
+impl SortKey {
+    fn next(self) -> Self {
+        match self {
+            SortKey::Number => SortKey::Age,
+            SortKey::Age => SortKey::Checks,
+            SortKey::Checks => SortKey::Churn,
+            SortKey::Churn => SortKey::Number,
+        }
+    }
+
+    fn label(self) -> &'static str {
+        match self {
+            SortKey::Number => "number",
+            SortKey::Age => "age",
+            SortKey::Checks => "checks",
+            SortKey::Churn => "size",
+        }
+    }
+}
+
+/// Rank checks so the most-actionable sort first: failing < pending < passing < none.
+fn checks_rank(checks: &str) -> u8 {
+    match checks {
+        "failing" => 0,
+        "pending" => 1,
+        "passing" => 2,
+        _ => 3,
+    }
+}
+
+/// Sort rows in place by the given key (newest/oldest/most-actionable/largest first).
+pub fn apply_sort(rows: &mut [PrRow], key: SortKey) {
+    use std::cmp::Reverse;
+    match key {
+        SortKey::Number => rows.sort_by_key(|r| Reverse(r.number)),
+        SortKey::Age => rows.sort_by_key(|r| Reverse(r.age_secs)),
+        SortKey::Checks => rows.sort_by_key(|r| checks_rank(&r.checks)),
+        SortKey::Churn => rows.sort_by_key(|r| Reverse(r.additions + r.deletions)),
     }
 }
 
@@ -64,6 +123,7 @@ pub fn build_rows(json: &str, now: DateTime<Utc>) -> Result<Vec<PrRow>, String> 
             checks_passed: cli::check_counts(&pr["statusCheckRollup"]).0,
             checks_total: cli::check_counts(&pr["statusCheckRollup"]).1,
             age: fmt_age(pr["updatedAt"].as_str().unwrap_or(""), now),
+            age_secs: age_seconds(pr["updatedAt"].as_str().unwrap_or(""), now),
             additions: pr["additions"].as_i64().unwrap_or(0),
             deletions: pr["deletions"].as_i64().unwrap_or(0),
             url: pr["url"].as_str().unwrap_or("").to_string(),
@@ -108,6 +168,7 @@ struct App {
     state: TableState,
     help: bool,
     status: String,
+    sort: SortKey,
 }
 
 impl App {
@@ -132,9 +193,10 @@ impl App {
 
     fn refresh(&mut self) {
         match Self::fetch(self.repo.as_deref(), self.account.as_deref()) {
-            Ok(rows) => {
+            Ok(mut rows) => {
+                apply_sort(&mut rows, self.sort);
                 self.rows = rows;
-                self.status = format!("{} open PRs", self.rows.len());
+                self.status = format!("{} open PRs · sort: {}", self.rows.len(), self.sort.label());
                 if self.state.selected().unwrap_or(0) >= self.rows.len() {
                     self.state
                         .select(if self.rows.is_empty() { None } else { Some(0) });
@@ -168,6 +230,15 @@ impl App {
             }
         }
     }
+
+    fn cycle_sort(&mut self) {
+        self.sort = self.sort.next();
+        apply_sort(&mut self.rows, self.sort);
+        self.status = format!("{} open PRs · sort: {}", self.rows.len(), self.sort.label());
+        if !self.rows.is_empty() {
+            self.state.select(Some(0));
+        }
+    }
 }
 
 /// Open a URL in the default browser (best-effort, per platform).
@@ -198,6 +269,7 @@ pub fn run(repo: Option<&str>, account: Option<&str>) -> Result<String, String> 
         state: TableState::default(),
         help: false,
         status: "loading…".to_string(),
+        sort: SortKey::Number,
     };
     app.refresh();
     if !app.rows.is_empty() {
@@ -247,6 +319,7 @@ fn event_loop(
                     app.refresh();
                     last_refresh = Instant::now();
                 }
+                KeyCode::Char('s') => app.cycle_sort(),
                 KeyCode::Char('?') => app.help = !app.help,
                 KeyCode::Enter => app.open_selected(),
                 _ => {}
@@ -306,9 +379,9 @@ fn render(f: &mut Frame, app: &mut App) {
     f.render_stateful_widget(table, chunks[1], &mut app.state);
 
     let footer = if app.help {
-        " j/k move · g/G top/bottom · Enter open · r refresh · ? help · q quit "
+        " j/k move · g/G top/bottom · Enter open · s sort · r refresh · ? help · q quit "
     } else {
-        " j/k move · Enter open · r refresh · ? help · q quit "
+        " j/k move · Enter open · s sort · r refresh · ? help · q quit "
     };
     f.render_widget(
         Paragraph::new(Line::from(footer)).style(Style::default().fg(Color::DarkGray)),
@@ -358,5 +431,58 @@ mod tests {
         assert_eq!(approval_color("APPROVED"), Color::Green);
         assert_eq!(approval_label("CHANGES_REQUESTED"), "changes");
         assert_eq!(approval_label(""), "-");
+    }
+
+    fn row(number: i64, age_secs: i64, checks: &str, churn: i64) -> PrRow {
+        PrRow {
+            number,
+            title: String::new(),
+            author: String::new(),
+            approval: String::new(),
+            checks: checks.to_string(),
+            checks_passed: 0,
+            checks_total: 0,
+            age: String::new(),
+            age_secs,
+            additions: churn,
+            deletions: 0,
+            url: String::new(),
+        }
+    }
+
+    #[test]
+    fn sort_by_each_key() {
+        let base = || {
+            vec![
+                row(1, 100, "passing", 5),
+                row(3, 300, "failing", 1),
+                row(2, 200, "pending", 9),
+            ]
+        };
+
+        let mut r = base();
+        apply_sort(&mut r, SortKey::Number);
+        assert_eq!(r.iter().map(|x| x.number).collect::<Vec<_>>(), [3, 2, 1]);
+
+        r = base();
+        apply_sort(&mut r, SortKey::Age); // oldest (largest age_secs) first
+        assert_eq!(r.iter().map(|x| x.number).collect::<Vec<_>>(), [3, 2, 1]);
+
+        r = base();
+        apply_sort(&mut r, SortKey::Checks); // failing < pending < passing
+        assert_eq!(
+            r.iter().map(|x| x.checks.as_str()).collect::<Vec<_>>(),
+            ["failing", "pending", "passing"]
+        );
+
+        r = base();
+        apply_sort(&mut r, SortKey::Churn); // largest first
+        assert_eq!(r.iter().map(|x| x.number).collect::<Vec<_>>(), [2, 1, 3]);
+    }
+
+    #[test]
+    fn sort_key_cycles() {
+        assert_eq!(SortKey::Number.next(), SortKey::Age);
+        assert_eq!(SortKey::Churn.next(), SortKey::Number);
     }
 }

@@ -85,8 +85,9 @@ ghpr-mcp watch --repo owner/name        # poll and notify on PR changes (--once 
 
 `tui` is a keyboard-driven dashboard of open PRs (color-coded checks, approval,
 age, diff stats): `j`/`k` or arrows to move, `g`/`G` for top/bottom, `Enter` to
-open in the browser, `r` to refresh, `?` for help, `q` to quit. With no `--repo`
-it uses the current repo (gh infers it from the working directory).
+open in the browser, `s` to cycle the sort (number/age/checks/size), `r` to
+refresh, `?` for help, `q` to quit. With no `--repo` it uses the current repo (gh
+infers it from the working directory).
 
 ### Dashboard inside Zed
 
