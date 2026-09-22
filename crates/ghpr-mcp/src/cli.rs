@@ -290,38 +290,76 @@ fn snapshot_from_pr(pr: &Value) -> notify::PrSnapshot {
     }
 }
 
+/// The state of one status check.
+#[derive(PartialEq, Eq)]
+enum Outcome {
+    Pass,
+    Fail,
+    Pending,
+    Unknown,
+}
+
+/// Classify one `statusCheckRollup` entry. Check runs carry status/conclusion;
+/// legacy status contexts carry state.
+fn classify(entry: &Value) -> Outcome {
+    let status = entry["status"].as_str().unwrap_or("");
+    let outcome = entry["conclusion"]
+        .as_str()
+        .filter(|s| !s.is_empty())
+        .or_else(|| entry["state"].as_str())
+        .unwrap_or("");
+    match outcome {
+        "SUCCESS" | "NEUTRAL" | "SKIPPED" => Outcome::Pass,
+        "FAILURE" | "ERROR" | "CANCELLED" | "TIMED_OUT" | "ACTION_REQUIRED" | "STARTUP_FAILURE" => {
+            Outcome::Fail
+        }
+        _ if !status.is_empty() && status != "COMPLETED" => Outcome::Pending,
+        "PENDING" | "EXPECTED" | "" => Outcome::Pending,
+        _ => Outcome::Unknown,
+    }
+}
+
 /// Reduce a `statusCheckRollup` array to `passing` | `failing` | `pending` | "".
 pub fn checks_from_rollup(rollup: &Value) -> String {
     let Some(entries) = rollup.as_array() else {
         return String::new();
     };
-    let (mut any_pass, mut any_fail, mut any_pending) = (false, false, false);
+    let mut any_pass = false;
+    let mut any_pending = false;
     for e in entries {
-        // Check runs carry status/conclusion; status contexts carry state.
-        let status = e["status"].as_str().unwrap_or("");
-        let outcome = e["conclusion"]
-            .as_str()
-            .filter(|s| !s.is_empty())
-            .or_else(|| e["state"].as_str())
-            .unwrap_or("");
-        match outcome {
-            "SUCCESS" | "NEUTRAL" | "SKIPPED" => any_pass = true,
-            "FAILURE" | "ERROR" | "CANCELLED" | "TIMED_OUT" | "ACTION_REQUIRED"
-            | "STARTUP_FAILURE" => any_fail = true,
-            _ if !status.is_empty() && status != "COMPLETED" => any_pending = true,
-            "PENDING" | "EXPECTED" | "" => any_pending = true,
-            _ => {}
+        match classify(e) {
+            Outcome::Fail => return "failing".to_string(),
+            Outcome::Pending => any_pending = true,
+            Outcome::Pass => any_pass = true,
+            Outcome::Unknown => {}
         }
     }
-    if any_fail {
-        "failing".into()
-    } else if any_pending {
+    if any_pending {
         "pending".into()
     } else if any_pass {
         "passing".into()
     } else {
         String::new()
     }
+}
+
+/// Count `(passed, total)` status checks, ignoring entries with no known outcome.
+pub fn check_counts(rollup: &Value) -> (u32, u32) {
+    let Some(entries) = rollup.as_array() else {
+        return (0, 0);
+    };
+    let (mut passed, mut total) = (0, 0);
+    for e in entries {
+        match classify(e) {
+            Outcome::Pass => {
+                passed += 1;
+                total += 1;
+            }
+            Outcome::Fail | Outcome::Pending => total += 1,
+            Outcome::Unknown => {}
+        }
+    }
+    (passed, total)
 }
 
 fn now_secs() -> u64 {
@@ -421,6 +459,18 @@ mod tests {
             checks_from_rollup(&json!([{"state": "PENDING"}])),
             "pending"
         );
+    }
+
+    #[test]
+    fn check_counts_pass_over_total() {
+        let rollup = json!([
+            {"status": "COMPLETED", "conclusion": "SUCCESS"},
+            {"status": "COMPLETED", "conclusion": "SUCCESS"},
+            {"status": "IN_PROGRESS", "conclusion": null},
+            {"state": "PENDING"}
+        ]);
+        assert_eq!(check_counts(&rollup), (2, 4));
+        assert_eq!(check_counts(&json!([])), (0, 0));
     }
 
     #[test]
