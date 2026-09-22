@@ -81,6 +81,7 @@ Noise controls (esp. for comments):
       (with placeholders like {repo}, {number}, {title}, {diff}).
 
 ## Phase 5 — Polish
+- [x] README: install, setup, and usage (tools, views, accounts, config)
 - [ ] Slash commands (`/prs`, `/pr`) for quick access in the assistant
 - [ ] Docs site / screenshots
 - [ ] Publish to Zed extension registry
