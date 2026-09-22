@@ -45,9 +45,16 @@ later alternative for users without `gh`.
 
 ## Notifications
 
-Extensions can't post OS notifications, but the native `ghpr-mcp` process can: it
-polls PR state on an interval and surfaces changes both as Agent-Panel context and
-(optionally) as OS notifications, filtered by the user's config.
+Zed exposes **no notification API** to extensions or MCP/context servers — the
+`zed_extension_api` 0.7 WIT has no toast/message/alert function, and Zed doesn't
+render MCP server→client notifications (logging/progress/`list_changed`) as UI
+toasts. The Agent Panel is pull-based, not a push surface. So there's no way for the
+extension to raise a Zed-native alert.
+
+The native `ghpr-mcp watch` process is the only surface that can *push* one: it
+polls PR state and fires **OS notifications** (macOS `osascript`, Linux
+`notify-send`), filtered by the user's config. If Zed ever adds a notification API,
+switch to it (see TODO).
 
 ## Open decisions
 - Binary distribution: GitHub releases + extension-side download vs. `cargo install`.
