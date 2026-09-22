@@ -51,7 +51,15 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
 - [ ] Notification filter config (which repos/events/authors)
 - [ ] User settings schema for filters + polling interval
 
-## Phase 4 — Polish
+## Phase 4 — PR review shortcut
+- [ ] "Review this PR with Claude" action — an MCP tool / slash command
+      (`review_pr <n>`) that gathers the PR diff + changed files and starts a
+      review in Zed's Agent Panel (the button-equivalent; extensions can't add
+      real PR-UI buttons, see DESIGN.md).
+- [ ] Config field: user-defined review prompt template for that shortcut
+      (with placeholders like {repo}, {number}, {title}, {diff}).
+
+## Phase 5 — Polish
 - [ ] Slash commands (`/prs`, `/pr`) for quick access in the assistant
 - [ ] Docs site / screenshots
 - [ ] Publish to Zed extension registry
