@@ -91,8 +91,8 @@ Noise controls (esp. for comments):
 ## Phase 6 — Direct interaction (no AI)
 Zed extensions can't draw UI, so direct interaction lives in the `ghpr-mcp` binary
 itself — same core logic, non-AI front doors.
-- [ ] CLI mode — subcommands on `ghpr-mcp` (e.g. `ghpr-mcp prs --view needs-my-review`,
-      `ghpr-mcp pr 42`, `ghpr-mcp accounts`) reusing the existing gh/notify code
+- [x] CLI mode — dual-mode binary: no args → MCP stdio; `prs`/`pr`/`accounts`
+      subcommands → direct terminal output, reusing the gh-backed logic
 - [ ] TUI dashboard (ratatui), inspired by githappens — sortable PR table with:
       color-coded merge-readiness (green/yellow/red), check pass/total (e.g. 5/7),
       approval state, branch-up-to-date, PR age, +/- diff stats
