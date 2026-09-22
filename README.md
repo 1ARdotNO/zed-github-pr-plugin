@@ -39,9 +39,10 @@ cargo install --path crates/ghpr-mcp
 #    Extensions → Install Dev Extension → select this repository's root folder.
 ```
 
-The extension launches `ghpr-mcp` from your `PATH`. (Auto-downloading a prebuilt
-binary from releases is planned; for now the `cargo install` step above is how you
-get it.)
+On linux/macOS the extension **auto-downloads** the matching `ghpr-mcp` binary
+from GitHub Releases, so step 2 is optional there once a release is published. It
+falls back to `ghpr-mcp` on your `PATH` (the `cargo install` above) when no release
+asset fits — which also covers Windows and running from source.
 
 ## Use
 
