@@ -40,7 +40,8 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
 - [ ] Make MegaLinter a required check once it's reliably green across a few runs
 - [x] Release workflow — tag `vX.Y.Z` builds `ghpr-mcp` for linux/macOS (x64+arm64)
       and publishes to GitHub Releases (taiki-e actions, mirrors wyrm)
-- [ ] Extension-side: download the release binary per-platform (vs. `cargo install`)
+- [x] Extension-side: download the release binary per-platform (linux/macOS via
+      `latest_github_release` + `download_file`), falling back to `ghpr-mcp` on PATH
 
 ## Phase 1 — GitHub auth + accounts
 - [x] MVP auth by reusing `gh` CLI stored credentials (multi-account already there)
