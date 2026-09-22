@@ -102,8 +102,6 @@ itself — same core logic, non-AI front doors.
 - [ ] TUI polish: check pass/total counts (e.g. 5/7), branch-up-to-date column,
       auto-refresh (configurable, min 30s), rate-limit awareness, sortable columns
       (ref: https://github.com/steffen-karlsson/githappens)
-- [ ] Easy in-Zed access to the TUI: ship a `.zed/tasks.json` task
-      ("GitHub PRs" → `ghpr-mcp tui`) + a suggested keybinding, so it opens in
-      Zed's integrated terminal as a persistent, one-key panel. (Extensions can't
-      spawn terminals; Zed's task system is the supported path — a terminal-control
-      API is only proposed upstream, revisit if it lands.)
+- [x] Easy in-Zed access to the TUI — `.zed/tasks.json` "GitHub PRs" task runs
+      `ghpr-mcp tui` (repo inferred from the worktree); README documents a keybind
+      to open it in Zed's integrated terminal

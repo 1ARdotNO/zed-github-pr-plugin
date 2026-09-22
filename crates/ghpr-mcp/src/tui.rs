@@ -97,7 +97,8 @@ pub fn approval_label(approval: &str) -> &str {
 }
 
 struct App {
-    repo: String,
+    /// `None` means "the current repo" — gh infers it from the working directory.
+    repo: Option<String>,
     account: Option<String>,
     rows: Vec<PrRow>,
     state: TableState,
@@ -106,28 +107,27 @@ struct App {
 }
 
 impl App {
-    fn fetch(repo: &str, account: Option<&str>) -> Result<Vec<PrRow>, String> {
-        let args: Vec<String> = [
-            "pr",
-            "list",
-            "--repo",
-            repo,
-            "--state",
-            "open",
-            "--limit",
-            "100",
-            "--json",
-            LIST_FIELDS,
-        ]
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
+    fn fetch(repo: Option<&str>, account: Option<&str>) -> Result<Vec<PrRow>, String> {
+        let mut args: Vec<String> = ["pr", "list", "--state", "open", "--limit", "100", "--json"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        args.push(LIST_FIELDS.to_string());
+        // Omit --repo to let gh infer from the working directory (Zed worktree).
+        if let Some(r) = repo {
+            args.push("--repo".to_string());
+            args.push(r.to_string());
+        }
         let json = gh::run_as(&args, account)?;
         build_rows(&json, Utc::now())
     }
 
+    fn repo_label(&self) -> &str {
+        self.repo.as_deref().unwrap_or("current repo")
+    }
+
     fn refresh(&mut self) {
-        match Self::fetch(&self.repo, self.account.as_deref()) {
+        match Self::fetch(self.repo.as_deref(), self.account.as_deref()) {
             Ok(rows) => {
                 self.rows = rows;
                 self.status = format!("{} open PRs", self.rows.len());
@@ -183,12 +183,12 @@ fn open_in_browser(url: &str) -> std::io::Result<()> {
 }
 
 /// Launch the interactive dashboard. Returns when the user quits.
-pub fn run(repo: &str, account: Option<&str>) -> Result<String, String> {
+pub fn run(repo: Option<&str>, account: Option<&str>) -> Result<String, String> {
     if !std::io::stdout().is_terminal() {
         return Err("the dashboard needs an interactive terminal".to_string());
     }
     let mut app = App {
-        repo: repo.to_string(),
+        repo: repo.map(String::from),
         account: account.map(String::from),
         rows: Vec::new(),
         state: TableState::default(),
@@ -239,7 +239,12 @@ fn render(f: &mut Frame, app: &mut App) {
     ])
     .split(f.area());
 
-    let title = Line::from(format!(" GitHub PRs — {} ({}) ", app.repo, app.status)).bold();
+    let title = Line::from(format!(
+        " GitHub PRs — {} ({}) ",
+        app.repo_label(),
+        app.status
+    ))
+    .bold();
     f.render_widget(Paragraph::new(title), chunks[0]);
 
     let header = Row::new(["#", "checks", "review", "age", "±", "title", "author"])
