@@ -38,7 +38,9 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
       (lru, paste) via `osv-scanner.toml`; Trivy still gates HIGH/CRITICAL
 - [ ] Drop the osv ignores once ratatui ships fixed lru/paste (revisit 2027-03)
 - [ ] Make MegaLinter a required check once it's reliably green across a few runs
-- [ ] Wire the MCP binary auto-download into the extension (GitHub releases)
+- [x] Release workflow — tag `vX.Y.Z` builds `ghpr-mcp` for linux/macOS (x64+arm64)
+      and publishes to GitHub Releases (taiki-e actions, mirrors wyrm)
+- [ ] Extension-side: download the release binary per-platform (vs. `cargo install`)
 
 ## Phase 1 — GitHub auth + accounts
 - [x] MVP auth by reusing `gh` CLI stored credentials (multi-account already there)
