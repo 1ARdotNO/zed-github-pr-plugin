@@ -43,7 +43,8 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
 ## Phase 2 — PR views + filters
 - [x] `list_pull_requests` tool — repo/org scoped
 - [x] Filters: author, review-requested (via `search`), assignee, state, label, limit
-- [ ] Named views (e.g. "needs my review", "mine", "failing checks")
+- [x] Named views — `view` preset (needs-my-review, mine, assigned-to-me,
+      involves-me) expands to a search qualifier, merges with `search`
 - [x] `pr_detail` tool — body, reviews, checks (statusCheckRollup), files
 
 ## Phase 3 — Notifications
