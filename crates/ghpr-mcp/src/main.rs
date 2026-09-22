@@ -16,6 +16,7 @@ mod gh;
 mod notify;
 mod rpc;
 mod tools;
+mod tui;
 
 const PROTOCOL_VERSION: &str = "2024-11-05";
 

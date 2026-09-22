@@ -92,12 +92,12 @@ Zed extensions can't draw UI, so direct interaction lives in the `ghpr-mcp` bina
 itself — same core logic, non-AI front doors.
 - [x] CLI mode — dual-mode binary: no args → MCP stdio; `prs`/`pr`/`accounts`
       subcommands → direct terminal output, reusing the gh-backed logic
-- [ ] TUI dashboard (ratatui), inspired by githappens — sortable PR table with:
-      color-coded merge-readiness (green/yellow/red), check pass/total (e.g. 5/7),
-      approval state, branch-up-to-date, PR age, +/- diff stats
-- [ ] TUI keybindings: j/k + arrows nav, g/G edges, Enter=open in browser,
-      r=refresh, R=force refetch, ?=help, q/Esc=quit
-- [ ] TUI auto-refresh (configurable, min 30s) + rate-limit awareness
+- [x] TUI dashboard (ratatui) `ghpr-mcp tui` — PR table with color-coded checks,
+      approval state, age, +/- diff stats (data layer unit-tested)
+- [x] TUI keybindings: j/k + arrows nav, g/G edges, Enter=open in browser,
+      r=refresh, ?=help, q/Esc=quit
+- [ ] TUI polish: check pass/total counts (e.g. 5/7), branch-up-to-date column,
+      auto-refresh (configurable, min 30s), rate-limit awareness, sortable columns
       (ref: https://github.com/steffen-karlsson/githappens)
 - [ ] Easy in-Zed access to the TUI: ship a `.zed/tasks.json` task
       ("GitHub PRs" → `ghpr-mcp tui`) + a suggested keybinding, so it opens in

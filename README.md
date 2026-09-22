@@ -75,8 +75,13 @@ ghpr-mcp prs --repo owner/name --state all --account other-login
 ghpr-mcp pr 42                          # one PR in detail (JSON)
 ghpr-mcp accounts                       # authenticated gh accounts
 ghpr-mcp review 42 --repo owner/name    # print a review prompt (title+body+diff)
+ghpr-mcp tui --repo owner/name          # interactive PR dashboard (needs a terminal)
 ghpr-mcp watch --repo owner/name        # poll and notify on PR changes (--once for one cycle)
 ```
+
+`tui` is a keyboard-driven dashboard of open PRs (color-coded checks, approval,
+age, diff stats): `j`/`k` or arrows to move, `g`/`G` for top/bottom, `Enter` to
+open in the browser, `r` to refresh, `?` for help, `q` to quit.
 
 `watch` diffs each poll against a saved snapshot, fires notifications for
 notification-worthy changes (approved & ready, checks status, …), and applies your
