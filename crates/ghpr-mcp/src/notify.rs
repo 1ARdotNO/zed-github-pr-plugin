@@ -28,6 +28,42 @@ impl Default for EventToggles {
     }
 }
 
+/// The "review this PR with Claude" prompt, with `{repo}`, `{number}`, `{title}`,
+/// `{body}`, `{diff}` placeholders substituted at review time.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ReviewConfig {
+    pub prompt_template: String,
+}
+
+impl Default for ReviewConfig {
+    fn default() -> Self {
+        Self {
+            prompt_template: "Review pull request {repo}#{number} — \"{title}\".\n\n\
+                {body}\n\n--- diff ---\n{diff}\n\n\
+                Give focused, actionable feedback on correctness, security, and clarity."
+                .to_string(),
+        }
+    }
+}
+
+/// Render a review prompt by substituting the PR fields into the template.
+pub fn render_review_prompt(
+    template: &str,
+    repo: &str,
+    number: i64,
+    title: &str,
+    body: &str,
+    diff: &str,
+) -> String {
+    template
+        .replace("{repo}", repo)
+        .replace("{number}", &number.to_string())
+        .replace("{title}", title)
+        .replace("{body}", body)
+        .replace("{diff}", diff)
+}
+
 /// User notification configuration. Unknown fields are ignored and any omitted
 /// field falls back to its default, so partial configs are valid.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,6 +82,7 @@ pub struct NotifyConfig {
     /// Fire native desktop notifications (in addition to stdout) from `watch`.
     pub desktop_notifications: bool,
     pub events: EventToggles,
+    pub review: ReviewConfig,
 }
 
 impl Default for NotifyConfig {
@@ -60,6 +97,7 @@ impl Default for NotifyConfig {
             silenced_users: Vec::new(),
             desktop_notifications: true,
             events: EventToggles::default(),
+            review: ReviewConfig::default(),
         }
     }
 }
@@ -250,6 +288,30 @@ mod tests {
     #[test]
     fn config_path_prefers_override() {
         assert_eq!(config_path(Some("/tmp/x.json")), "/tmp/x.json");
+    }
+
+    #[test]
+    fn render_review_substitutes_placeholders() {
+        let out = render_review_prompt(
+            "{repo}#{number}: {title}\n{body}\n{diff}",
+            "o/n",
+            7,
+            "Fix bug",
+            "the body",
+            "@@ -1 +1 @@",
+        );
+        assert_eq!(out, "o/n#7: Fix bug\nthe body\n@@ -1 +1 @@");
+    }
+
+    #[test]
+    fn review_template_default_and_override() {
+        assert!(NotifyConfig::default()
+            .review
+            .prompt_template
+            .contains("{diff}"));
+        let c = NotifyConfig::from_json(r#"{"review": {"prompt_template": "custom {number}"}}"#)
+            .unwrap();
+        assert_eq!(c.review.prompt_template, "custom {number}");
     }
 
     fn snap(number: u64) -> PrSnapshot {

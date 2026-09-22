@@ -75,12 +75,9 @@ Noise controls (esp. for comments):
 - [x] Per-user silence list — `silenced_users`
 
 ## Phase 4 — PR review shortcut
-- [ ] "Review this PR with Claude" action — an MCP tool / slash command
-      (`review_pr <n>`) that gathers the PR diff + changed files and starts a
-      review in Zed's Agent Panel (the button-equivalent; extensions can't add
-      real PR-UI buttons, see DESIGN.md).
-- [ ] Config field: user-defined review prompt template for that shortcut
-      (with placeholders like {repo}, {number}, {title}, {diff}).
+- [x] "Review this PR" action — `review_pr` MCP tool + `review <n>` CLI: gathers
+      title/body/diff and renders the review prompt for the Agent Panel (or piping)
+- [x] Config field — `review.prompt_template` with {repo}/{number}/{title}/{body}/{diff}
 
 ## Phase 5 — Polish
 - [x] README: install, setup, and usage (tools, views, accounts, config)
