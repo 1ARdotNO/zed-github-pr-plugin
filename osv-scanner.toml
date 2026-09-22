@@ -1,0 +1,18 @@
+# Accepted transitive advisories, revisited at `ignoreUntil`. All are pulled in by
+# ratatui 0.29 (the TUI dashboard) and have no fix reachable without a ratatui bump.
+# Our dedicated Trivy scan gates on HIGH/CRITICAL; these are low/unknown/unmaintained.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0002" # lru < 0.16.3 (CVSS 2.7, low); ratatui pins lru 0.12.
+reason = "Transitive via ratatui; low severity, no fix without a ratatui update."
+ignoreUntil = 2027-03-31T00:00:00Z
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0253" # lru < 0.18.2; same dependency as above.
+reason = "Transitive via ratatui; no fix without a ratatui update."
+ignoreUntil = 2027-03-31T00:00:00Z
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0436" # paste unmaintained; build-time proc-macro, no fix version.
+reason = "paste is unmaintained; transitive via ratatui; macro-only, no runtime exposure."
+ignoreUntil = 2027-03-31T00:00:00Z

@@ -34,6 +34,9 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
 - [x] Harden CI checkouts (`persist-credentials: false`) — real hardening; kept
 - [x] Disable bundled zizmor (v1.25.0 crashes its artipacked audit on ci.yml)
 - [ ] Re-enable ACTION_ZIZMOR when MegaLinter bundles a fixed zizmor
+- [x] osv-scanner: ignore low/unmaintained transitive advisories from ratatui
+      (lru, paste) via `osv-scanner.toml`; Trivy still gates HIGH/CRITICAL
+- [ ] Drop the osv ignores once ratatui ships fixed lru/paste (revisit 2027-03)
 - [ ] Make MegaLinter a required check once it's reliably green across a few runs
 - [ ] Wire the MCP binary auto-download into the extension (GitHub releases)
 
