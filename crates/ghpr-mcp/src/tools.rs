@@ -4,6 +4,11 @@ use serde_json::{json, Value};
 
 use crate::gh;
 
+/// A reusable schema fragment: the optional account selector.
+fn account_prop() -> Value {
+    json!({ "type": "string", "description": "gh account login to scope this request to (see list_accounts)" })
+}
+
 /// Tool schemas advertised via `tools/list`.
 pub fn list() -> Vec<Value> {
     vec![
@@ -19,8 +24,22 @@ pub fn list() -> Vec<Value> {
                     "assignee": { "type": "string", "description": "filter by assignee login (or @me)" },
                     "label": { "type": "string" },
                     "search": { "type": "string", "description": "gh search query, e.g. 'review-requested:@me'" },
-                    "limit": { "type": "integer", "default": 30 }
+                    "limit": { "type": "integer", "default": 30 },
+                    "account": account_prop()
                 }
+            }
+        }),
+        json!({
+            "name": "pr_detail",
+            "description": "Show one pull request in detail: body, reviews, checks, changed files.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "number": { "type": "integer", "description": "the PR number" },
+                    "repo": { "type": "string", "description": "owner/name; omit to use the current repo" },
+                    "account": account_prop()
+                },
+                "required": ["number"]
             }
         }),
         json!({
@@ -39,9 +58,14 @@ pub fn call(params: Option<&Value>) -> Result<Value, String> {
         .and_then(Value::as_str)
         .ok_or("missing tool name")?;
     let args = params.get("arguments").cloned().unwrap_or(json!({}));
+    let account = args.get("account").and_then(Value::as_str);
 
     let text = match name {
-        "list_pull_requests" => gh::run(&gh::pr_list_args(&args)),
+        "list_pull_requests" => gh::run_as(&gh::pr_list_args(&args), account),
+        "pr_detail" => match gh::pr_view_args(&args) {
+            Ok(a) => gh::run_as(&a, account),
+            Err(e) => Err(e),
+        },
         "list_accounts" => gh::run(&["auth".into(), "status".into()]),
         other => return Err(format!("unknown tool: {other}")),
     };
@@ -63,6 +87,7 @@ mod tests {
             .map(|t| t["name"].as_str().unwrap().to_string())
             .collect();
         assert!(names.contains(&"list_pull_requests".to_string()));
+        assert!(names.contains(&"pr_detail".to_string()));
         assert!(names.contains(&"list_accounts".to_string()));
     }
 
@@ -70,5 +95,13 @@ mod tests {
     fn unknown_tool_errors() {
         let params = json!({ "name": "does_not_exist" });
         assert!(call(Some(&params)).is_err());
+    }
+
+    #[test]
+    fn pr_detail_without_number_is_a_tool_error_result() {
+        // Missing `number` surfaces as an isError result, not a dispatch error.
+        let params = json!({ "name": "pr_detail", "arguments": {} });
+        let out = call(Some(&params)).unwrap();
+        assert_eq!(out["isError"], true);
     }
 }
