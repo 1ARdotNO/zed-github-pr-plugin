@@ -25,6 +25,8 @@ pub struct PrRow {
     pub checks: String,   // passing | failing | pending | ""
     pub checks_passed: u32,
     pub checks_total: u32,
+    /// Short merge-state label: conflict | behind | draft | "".
+    pub merge: String,
     pub age: String,
     /// Seconds since last update; kept for sorting (the string is display-only).
     pub age_secs: i64,
@@ -33,8 +35,29 @@ pub struct PrRow {
     pub url: String,
 }
 
-const LIST_FIELDS: &str =
-    "number,title,author,reviewDecision,statusCheckRollup,updatedAt,additions,deletions,url";
+const LIST_FIELDS: &str = "number,title,author,reviewDecision,statusCheckRollup,mergeable,mergeStateStatus,updatedAt,additions,deletions,url";
+
+/// A short, actionable merge-state label from `mergeable` + `mergeStateStatus`.
+pub fn merge_label(mergeable: &str, merge_state: &str) -> &'static str {
+    if mergeable == "CONFLICTING" {
+        "conflict"
+    } else if merge_state == "BEHIND" {
+        "behind"
+    } else if merge_state == "DRAFT" {
+        "draft"
+    } else {
+        "-"
+    }
+}
+
+/// Color for a merge-state label.
+pub fn merge_color(label: &str) -> Color {
+    match label {
+        "conflict" => Color::Red,
+        "behind" => Color::Yellow,
+        _ => Color::DarkGray,
+    }
+}
 
 /// Seconds since `updated` (RFC3339); `i64::MAX` if unparseable (sorts last).
 pub fn age_seconds(updated: &str, now: DateTime<Utc>) -> i64 {
@@ -122,6 +145,11 @@ pub fn build_rows(json: &str, now: DateTime<Utc>) -> Result<Vec<PrRow>, String> 
             checks: cli::checks_from_rollup(&pr["statusCheckRollup"]),
             checks_passed: cli::check_counts(&pr["statusCheckRollup"]).0,
             checks_total: cli::check_counts(&pr["statusCheckRollup"]).1,
+            merge: merge_label(
+                pr["mergeable"].as_str().unwrap_or(""),
+                pr["mergeStateStatus"].as_str().unwrap_or(""),
+            )
+            .to_string(),
             age: fmt_age(pr["updatedAt"].as_str().unwrap_or(""), now),
             age_secs: age_seconds(pr["updatedAt"].as_str().unwrap_or(""), now),
             additions: pr["additions"].as_i64().unwrap_or(0),
@@ -344,8 +372,10 @@ fn render(f: &mut Frame, app: &mut App) {
     .bold();
     f.render_widget(Paragraph::new(title), chunks[0]);
 
-    let header = Row::new(["#", "checks", "review", "age", "±", "title", "author"])
-        .style(Style::default().add_modifier(Modifier::BOLD));
+    let header = Row::new([
+        "#", "checks", "review", "state", "age", "±", "title", "author",
+    ])
+    .style(Style::default().add_modifier(Modifier::BOLD));
     let rows = app.rows.iter().map(|r| {
         let checks_cell = if r.checks_total > 0 {
             format!("{}/{}", r.checks_passed, r.checks_total)
@@ -357,6 +387,7 @@ fn render(f: &mut Frame, app: &mut App) {
             Cell::from(checks_cell).style(Style::default().fg(checks_color(&r.checks))),
             Cell::from(approval_label(&r.approval))
                 .style(Style::default().fg(approval_color(&r.approval))),
+            Cell::from(r.merge.clone()).style(Style::default().fg(merge_color(&r.merge))),
             Cell::from(r.age.clone()),
             Cell::from(format!("+{} -{}", r.additions, r.deletions)),
             Cell::from(r.title.clone()),
@@ -366,6 +397,7 @@ fn render(f: &mut Frame, app: &mut App) {
     let widths = [
         Constraint::Length(6),
         Constraint::Length(6),
+        Constraint::Length(8),
         Constraint::Length(8),
         Constraint::Length(5),
         Constraint::Length(12),
@@ -442,6 +474,7 @@ mod tests {
             checks: checks.to_string(),
             checks_passed: 0,
             checks_total: 0,
+            merge: String::new(),
             age: String::new(),
             age_secs,
             additions: churn,
@@ -484,5 +517,15 @@ mod tests {
     fn sort_key_cycles() {
         assert_eq!(SortKey::Number.next(), SortKey::Age);
         assert_eq!(SortKey::Churn.next(), SortKey::Number);
+    }
+
+    #[test]
+    fn merge_label_prioritises_conflict() {
+        assert_eq!(merge_label("CONFLICTING", "BEHIND"), "conflict");
+        assert_eq!(merge_label("MERGEABLE", "BEHIND"), "behind");
+        assert_eq!(merge_label("MERGEABLE", "DRAFT"), "draft");
+        assert_eq!(merge_label("MERGEABLE", "CLEAN"), "-");
+        assert_eq!(merge_color("conflict"), Color::Red);
+        assert_eq!(merge_color("behind"), Color::Yellow);
     }
 }
