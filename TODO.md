@@ -84,3 +84,16 @@ Noise controls (esp. for comments):
 - [ ] Slash commands (`/prs`, `/pr`) for quick access in the assistant
 - [ ] Docs site / screenshots
 - [ ] Publish to Zed extension registry
+
+## Phase 6 — Direct interaction (no AI)
+Zed extensions can't draw UI, so direct interaction lives in the `ghpr-mcp` binary
+itself — same core logic, non-AI front doors.
+- [ ] CLI mode — subcommands on `ghpr-mcp` (e.g. `ghpr-mcp prs --view needs-my-review`,
+      `ghpr-mcp pr 42`, `ghpr-mcp accounts`) reusing the existing gh/notify code
+- [ ] TUI dashboard (ratatui), inspired by githappens — sortable PR table with:
+      color-coded merge-readiness (green/yellow/red), check pass/total (e.g. 5/7),
+      approval state, branch-up-to-date, PR age, +/- diff stats
+- [ ] TUI keybindings: j/k + arrows nav, g/G edges, Enter=open in browser,
+      r=refresh, R=force refetch, ?=help, q/Esc=quit
+- [ ] TUI auto-refresh (configurable, min 30s) + rate-limit awareness
+      (ref: https://github.com/steffen-karlsson/githappens)
