@@ -30,20 +30,21 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
 - [x] Responsible-disclosure security page (SECURITY.md + posture), jync-style
 - [x] Green CI: commit `zed-ghpr` Cargo.lock (wasm `--locked`); drop flaky/redundant
       grype; enable Discussions so the issue-template link resolves
-- [ ] Add `extension (wasm)` to required checks once green (strengthen the gate)
+- [x] Add `extension (wasm)` to required checks (gate = build + wasm)
 - [ ] Wire the MCP binary auto-download into the extension (GitHub releases)
 
 ## Phase 1 — GitHub auth + accounts
-- [ ] MVP auth by reusing `gh` CLI stored credentials (multi-account already there)
-- [ ] `list_accounts` tool — enumerate `gh auth status` accounts
-- [ ] Account switching per request (choose between different git accounts)
+- [x] MVP auth by reusing `gh` CLI stored credentials (multi-account already there)
+- [x] `list_accounts` tool — enumerate `gh auth status` accounts
+- [x] Account switching per request — `account` param resolves a per-call `GH_TOKEN`
+      via `gh auth token --user`, no global state change
 - [ ] Native OAuth device flow as an alternative to `gh` (Zed MCP OAuth/DCR)
 
 ## Phase 2 — PR views + filters
-- [ ] `list_pull_requests` tool — repo/org scoped
-- [ ] Filters: author, review-requested, assignee, state, label, draft, checks
+- [x] `list_pull_requests` tool — repo/org scoped
+- [x] Filters: author, review-requested (via `search`), assignee, state, label, limit
 - [ ] Named views (e.g. "needs my review", "mine", "failing checks")
-- [ ] `pr_detail` tool — description, checks, reviews, files
+- [x] `pr_detail` tool — body, reviews, checks (statusCheckRollup), files
 
 ## Phase 3 — Notifications
 - [ ] Poll PR state; detect updates (new review, CI status change, new commit)
