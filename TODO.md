@@ -52,25 +52,27 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
 - [x] `pr_detail` tool — body, reviews, checks (statusCheckRollup), files
 
 ## Phase 3 — Notifications
-- [ ] Poll PR state; detect updates (new review, CI status change, new commit)
-- [ ] Surface updates through the Agent Panel / OS notification from the server
+- [x] Poll PR state + detect updates — `watch` command diffs snapshots against a
+      state file each cycle (review decision, checks status, commits, comments)
 - [x] Config foundation — `NotifyConfig` (poll interval, cooldown, repos,
       suppress-self, exclude-bots, silence list, event toggles) + serde load +
       `notification_settings` tool (defaults merged with the user's file)
-- [ ] Notification filter/detection logic on top of the config (poller feeds it)
+- [x] Notification filter/detection logic — `detect` + `should_notify` + `Cooldown`
+- [ ] Deliver via OS notification (terminal-notifier/notify-send) — `watch` prints
+      to stdout today; add native notifications + optional Agent-Panel surfacing
+- [ ] Fetch per-PR comments/commits (author + counts) so new-comment / new-commit /
+      new-review fire with actor attribution (list JSON lacks these fields)
 
 Event types to notify on:
-- [ ] PR approved and ready to merge (approving review + mergeable/clean checks)
-- [ ] New comment on a PR (review comment or issue comment)
+- [x] PR approved and ready to merge (review APPROVED + checks not failing/pending)
+- [~] New comment on a PR — detection + cooldown logic done; wiring needs the
+      per-PR detail fetch above
 
 Noise controls (esp. for comments):
-- [ ] Comment cooldown/debounce — coalesce a burst of comments from one actor
-      into a single notification within a window (configurable)
-- [ ] Never notify on the user's own actions — suppress events the active
-      account authored
-- [ ] Exclude bot / GitHub App comments (opt-in; match `author.type == "Bot"` /
-      app slugs), configurable
-- [ ] Per-user silence list — mute comment notifications from specific logins
+- [x] Comment cooldown/debounce — `Cooldown` coalesces same actor+PR within a window
+- [x] Never notify on the user's own actions — `suppress_self` + `self_login`
+- [x] Exclude bot / GitHub App comments — `exclude_bots` on `actor_is_bot`
+- [x] Per-user silence list — `silenced_users`
 
 ## Phase 4 — PR review shortcut
 - [ ] "Review this PR with Claude" action — an MCP tool / slash command

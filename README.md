@@ -74,7 +74,13 @@ ghpr-mcp prs --view needs-my-review     # filtered PR list
 ghpr-mcp prs --repo owner/name --state all --account other-login
 ghpr-mcp pr 42                          # one PR in detail (JSON)
 ghpr-mcp accounts                       # authenticated gh accounts
+ghpr-mcp watch --repo owner/name        # poll and print PR changes (--once for one cycle)
 ```
+
+`watch` diffs each poll against a saved snapshot and prints notification-worthy
+changes (approved & ready, checks status, …), applying your config's noise controls
+(suppress-self, exclude-bots, silence list, comment cooldown). Native OS
+notifications are on the roadmap; today it writes to stdout.
 
 ## Configuration
 
