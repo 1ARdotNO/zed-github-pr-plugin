@@ -173,7 +173,7 @@ fn watch_cycle(
         "--limit",
         "100",
         "--json",
-        "number,reviewDecision,statusCheckRollup",
+        "number,reviewDecision,statusCheckRollup,comments,headRefOid",
     ]
     .iter()
     .map(|s| s.to_string())
@@ -263,19 +263,31 @@ fn format_event(repo: &str, e: &notify::Event) -> String {
     format!("{repo}#{} — {what}{by}", e.pr_number)
 }
 
-/// Parse `gh pr list --json number,reviewDecision,statusCheckRollup` into snapshots.
+/// Parse `gh pr list` JSON (with comments + headRefOid) into snapshots.
 pub fn snapshots_from_list(json: &str) -> Result<Vec<notify::PrSnapshot>, String> {
     let arr: Value = serde_json::from_str(json).map_err(|e| e.to_string())?;
     let arr = arr.as_array().ok_or("expected a JSON array of PRs")?;
-    Ok(arr
-        .iter()
-        .map(|pr| notify::PrSnapshot {
-            number: pr["number"].as_u64().unwrap_or(0),
-            review_decision: pr["reviewDecision"].as_str().unwrap_or("").to_string(),
-            checks: checks_from_rollup(&pr["statusCheckRollup"]),
-            ..Default::default()
-        })
-        .collect())
+    Ok(arr.iter().map(snapshot_from_pr).collect())
+}
+
+fn snapshot_from_pr(pr: &Value) -> notify::PrSnapshot {
+    let comments = pr["comments"].as_array();
+    let last = comments.and_then(|c| c.last());
+    // GitHub Apps/bots comment as `<name>[bot]`.
+    let last_actor = last
+        .and_then(|c| c["author"]["login"].as_str())
+        .unwrap_or("")
+        .to_string();
+    let last_actor_is_bot = last_actor.ends_with("[bot]");
+    notify::PrSnapshot {
+        number: pr["number"].as_u64().unwrap_or(0),
+        review_decision: pr["reviewDecision"].as_str().unwrap_or("").to_string(),
+        checks: checks_from_rollup(&pr["statusCheckRollup"]),
+        head_sha: pr["headRefOid"].as_str().unwrap_or("").to_string(),
+        comment_count: comments.map(|c| c.len() as u64).unwrap_or(0),
+        last_actor,
+        last_actor_is_bot,
+    }
 }
 
 /// Reduce a `statusCheckRollup` array to `passing` | `failing` | `pending` | "".
@@ -437,5 +449,18 @@ mod tests {
         assert_eq!(snaps[0].number, 5);
         assert_eq!(snaps[0].review_decision, "APPROVED");
         assert_eq!(snaps[0].checks, "passing");
+    }
+
+    #[test]
+    fn snapshots_attribute_comments_and_head_sha() {
+        let json = r#"[
+            {"number": 5, "headRefOid": "deadbeef",
+             "comments": [{"author": {"login": "alice"}}, {"author": {"login": "dependabot[bot]"}}]}
+        ]"#;
+        let s = &snapshots_from_list(json).unwrap()[0];
+        assert_eq!(s.head_sha, "deadbeef");
+        assert_eq!(s.comment_count, 2);
+        assert_eq!(s.last_actor, "dependabot[bot]");
+        assert!(s.last_actor_is_bot); // trailing [bot] detected
     }
 }

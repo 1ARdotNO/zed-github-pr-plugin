@@ -63,13 +63,13 @@ worked in the order that makes sense. Checked = done, `~` = in progress.
 - [x] Notification filter/detection logic — `detect` + `should_notify` + `Cooldown`
 - [x] Deliver via OS notification — `watch` fires native desktop notifications
       (macOS osascript / Linux notify-send), gated by `desktop_notifications`
-- [ ] Fetch per-PR comments/commits (author + counts) so new-comment / new-commit /
-      new-review fire with actor attribution (list JSON lacks these fields)
+- [x] Comment/commit attribution — `gh pr list` returns `comments` + `headRefOid`
+      in one call; snapshots carry comment count, head SHA, last commenter (+bot)
 
 Event types to notify on:
 - [x] PR approved and ready to merge (review APPROVED + checks not failing/pending)
-- [~] New comment on a PR — detection + cooldown logic done; wiring needs the
-      per-PR detail fetch above
+- [x] New comment on a PR — fires with the commenter attributed (only comment
+      events carry an actor, so filters apply correctly)
 
 Noise controls (esp. for comments):
 - [x] Comment cooldown/debounce — `Cooldown` coalesces same actor+PR within a window
