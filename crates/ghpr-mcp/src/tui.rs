@@ -231,7 +231,7 @@ fn event_loop(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> std::io
     }
 }
 
-fn render(f: &mut Frame, app: &App) {
+fn render(f: &mut Frame, app: &mut App) {
     let chunks = Layout::vertical([
         Constraint::Length(1),
         Constraint::Min(1),
@@ -269,8 +269,7 @@ fn render(f: &mut Frame, app: &App) {
         .header(header)
         .block(Block::default().borders(Borders::ALL))
         .row_highlight_style(Style::default().add_modifier(Modifier::REVERSED));
-    let mut state = app.state.clone();
-    f.render_stateful_widget(table, chunks[1], &mut state);
+    f.render_stateful_widget(table, chunks[1], &mut app.state);
 
     let footer = if app.help {
         " j/k move · g/G top/bottom · Enter open · r refresh · ? help · q quit "
