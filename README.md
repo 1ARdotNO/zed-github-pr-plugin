@@ -64,6 +64,18 @@ The agent calls these tools:
 `gh` accounts (see `list_accounts`); it's resolved to that account's token for that
 call only, without changing your active `gh` account.
 
+## Terminal (CLI) mode
+
+The same binary works directly from a terminal — no Zed, no AI. Run it with a
+subcommand (with no subcommand it speaks MCP, which is how the extension uses it):
+
+```sh
+ghpr-mcp prs --view needs-my-review     # filtered PR list
+ghpr-mcp prs --repo owner/name --state all --account other-login
+ghpr-mcp pr 42                          # one PR in detail (JSON)
+ghpr-mcp accounts                       # authenticated gh accounts
+```
+
 ## Configuration
 
 Notification behaviour is configured in JSON at `$GHPR_CONFIG`, or
