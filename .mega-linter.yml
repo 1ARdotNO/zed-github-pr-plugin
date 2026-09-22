@@ -16,5 +16,8 @@ DISABLE_LINTERS:
   - REPOSITORY_GRYPE
   - ACTION_ZIZMOR
 SPELL_CSPELL_DISABLE_ERRORS: true
+# jscpd defaults to a 0% duplication threshold, which fails on idiomatic
+# repetition (clap arg blocks, similar tool schemas). Allow a small budget.
+COPYPASTE_JSCPD_ARGUMENTS: "--threshold 5"
 MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.yml
 YAML_YAMLLINT_CONFIG_FILE: .yamllint.yml

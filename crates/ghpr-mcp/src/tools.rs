@@ -9,6 +9,20 @@ fn account_prop() -> Value {
     json!({ "type": "string", "description": "gh account login to scope this request to (see list_accounts)" })
 }
 
+/// Input schema shared by the single-PR tools: required `number`, plus `repo`
+/// and `account`.
+fn pr_ref_schema() -> Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "number": { "type": "integer", "description": "the PR number" },
+            "repo": { "type": "string", "description": "owner/name; omit to use the current repo" },
+            "account": account_prop()
+        },
+        "required": ["number"]
+    })
+}
+
 /// Tool schemas advertised via `tools/list`.
 pub fn list() -> Vec<Value> {
     vec![
@@ -33,15 +47,7 @@ pub fn list() -> Vec<Value> {
         json!({
             "name": "pr_detail",
             "description": "Show one pull request in detail: body, reviews, checks, changed files.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "number": { "type": "integer", "description": "the PR number" },
-                    "repo": { "type": "string", "description": "owner/name; omit to use the current repo" },
-                    "account": account_prop()
-                },
-                "required": ["number"]
-            }
+            "inputSchema": pr_ref_schema()
         }),
         json!({
             "name": "list_accounts",
@@ -61,15 +67,7 @@ pub fn list() -> Vec<Value> {
         json!({
             "name": "review_pr",
             "description": "Assemble a review prompt for a PR (title, body, diff) from the configured template — run the result to review it.",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "number": { "type": "integer", "description": "the PR number" },
-                    "repo": { "type": "string", "description": "owner/name; omit to use the current repo" },
-                    "account": account_prop()
-                },
-                "required": ["number"]
-            }
+            "inputSchema": pr_ref_schema()
         }),
     ]
 }
