@@ -28,21 +28,26 @@ that the Agent Panel talks to. So all the PR logic lives in a small native binar
 
 ## Install
 
+Recommended — the extension downloads a prebuilt `ghpr-mcp` binary from GitHub
+Releases, so no Rust toolchain is needed:
+
 ```sh
 # 1. Authenticate GitHub (once). Add more accounts anytime with the same command.
 gh auth login
 
-# 2. Build and install the MCP server onto your PATH (~/.cargo/bin).
-cargo install --path crates/ghpr-mcp
-
-# 3. Install the extension in Zed:
+# 2. Install the extension in Zed:
 #    Extensions → Install Dev Extension → select this repository's root folder.
 ```
 
-On linux/macOS the extension **auto-downloads** the matching `ghpr-mcp` binary
-from GitHub Releases, so step 2 is optional there once a release is published. It
-falls back to `ghpr-mcp` on your `PATH` (the `cargo install` above) when no release
-asset fits — which also covers Windows and running from source.
+On linux/macOS (x64 + arm64) the extension **auto-downloads** the matching
+[released](https://github.com/1ARdotNO/zed-github-pr-plugin/releases) `ghpr-mcp`
+binary. It falls back to `ghpr-mcp` on your `PATH` when no release asset fits —
+which covers Windows and running from source:
+
+```sh
+# Build and install the MCP server onto your PATH (~/.cargo/bin).
+cargo install --path crates/ghpr-mcp
+```
 
 ## Use
 
