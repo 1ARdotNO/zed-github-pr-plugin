@@ -39,9 +39,14 @@
 
       <section>
         <h2>Install</h2>
-        <pre><code>gh auth login                       # authenticate (add more accounts anytime)
-cargo install --path crates/ghpr-mcp # build + install the ghpr-mcp binary
+        <pre><code>gh auth login   # authenticate (add more accounts anytime)
 # Zed → Extensions → Install Dev Extension → this repo's root folder</code></pre>
+        <p>On linux/macOS (x64 + arm64) the extension auto-downloads the matching
+        <code>ghpr-mcp</code> binary from
+        <a href="https://github.com/1ARdotNO/zed-github-pr-plugin/releases">GitHub Releases</a>
+        &mdash; no Rust toolchain needed. To build from source instead (also covers
+        Windows), install it onto your <code>PATH</code>:</p>
+        <pre><code>cargo install --path crates/ghpr-mcp</code></pre>
       </section>
 
       <section>
