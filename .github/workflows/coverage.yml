@@ -20,7 +20,7 @@ jobs:
         with:
           components: llvm-tools-preview
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
-      - uses: taiki-e/install-action@2849dd45641a7136e3364e6b3e318dfffbc378b2 # cargo-llvm-cov
+      - uses: taiki-e/install-action@27cdd3237bf9a6a2b668f3bcbfaa06949ae17deb # cargo-llvm-cov
       - name: Coverage
         run: cargo llvm-cov --workspace --locked --lcov --output-path lcov.info
       - name: Upload to Codecov
