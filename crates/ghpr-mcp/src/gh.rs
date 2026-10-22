@@ -76,7 +76,10 @@ pub fn view_qualifier(view: &str) -> Option<&'static str> {
 pub fn global_qualifier(view: Option<&str>, search: Option<&str>) -> String {
     let parts = [
         view.and_then(view_qualifier).map(str::to_string),
-        search.map(str::trim).filter(|s| !s.is_empty()).map(str::to_string),
+        search
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_string),
     ]
     .into_iter()
     .flatten()

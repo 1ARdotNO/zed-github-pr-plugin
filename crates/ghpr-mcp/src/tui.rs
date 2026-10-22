@@ -280,7 +280,10 @@ impl App {
 
     fn repo_label(&self) -> String {
         if self.global {
-            format!("all repos · {}", gh::global_qualifier(self.view.as_deref(), None))
+            format!(
+                "all repos · {}",
+                gh::global_qualifier(self.view.as_deref(), None)
+            )
         } else {
             self.repo.as_deref().unwrap_or("current repo").to_string()
         }

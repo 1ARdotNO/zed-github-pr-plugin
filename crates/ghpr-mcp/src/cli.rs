@@ -104,8 +104,10 @@ pub fn run(cmd: Cmd) -> Result<String, String> {
                 // Account-wide: one `gh search prs` spans all repos. The text
                 // list shows no check rollups anyway, so the search API suffices.
                 let qualifier = gh::global_qualifier(view.as_deref(), search.as_deref());
-                let out =
-                    gh::run_as(&gh::pr_search_args(&qualifier, &state, limit), account.as_deref())?;
+                let out = gh::run_as(
+                    &gh::pr_search_args(&qualifier, &state, limit),
+                    account.as_deref(),
+                )?;
                 return format_pr_list(&out);
             }
             let mut params = json!({ "state": state, "limit": limit });
