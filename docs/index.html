@@ -70,17 +70,21 @@ cargo install --path crates/ghpr-mcp # build + install the ghpr-mcp binary
       <section>
         <h2>Terminal (CLI) &amp; dashboard</h2>
         <pre><code>ghpr-mcp prs --view needs-my-review   # filtered PR list
+ghpr-mcp prs --global --view mine     # my PRs across ALL repos
 ghpr-mcp pr 42                        # one PR in detail (JSON)
 ghpr-mcp review 42                    # print a review prompt
 ghpr-mcp tui                          # interactive dashboard (repo from cwd)
+ghpr-mcp tui --global                 # dashboard across all your repos
 ghpr-mcp watch --repo owner/name      # poll + desktop-notify on changes</code></pre>
         <p>
+          <code>--global</code> lists PRs across <strong>all</strong> your repos (via
+          <code>gh search prs</code>) instead of just the current one.
           The <strong>dashboard</strong> shows open PRs with color-coded checks
           (<code>5/7</code>), approval, age, and diff stats. Keys: <kbd>j</kbd>/<kbd>k</kbd>
           move, <kbd>g</kbd>/<kbd>G</kbd> top/bottom, <kbd>Enter</kbd> open in browser,
-          <kbd>r</kbd> refresh, <kbd>?</kbd> help, <kbd>q</kbd> quit. Run it inside Zed's
-          terminal via the shipped <code>.zed/tasks.json</code> "GitHub PRs" task and a
-          keybinding.
+          <kbd>s</kbd> sort, <kbd>a</kbd> toggle all-repos, <kbd>r</kbd> refresh,
+          <kbd>?</kbd> help, <kbd>q</kbd> quit. Run it inside Zed's terminal via the
+          shipped <code>.zed/tasks.json</code> "GitHub PRs" task and a keybinding.
         </p>
       </section>
 

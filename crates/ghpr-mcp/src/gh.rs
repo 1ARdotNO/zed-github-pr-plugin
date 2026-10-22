@@ -70,6 +70,57 @@ pub fn view_qualifier(view: &str) -> Option<&'static str> {
     }
 }
 
+/// Combine a named view and/or explicit search into one account-wide GitHub
+/// search qualifier. Falls back to `involves:@me` so "global, no filter" still
+/// means "PRs that concern me" rather than every PR on GitHub.
+pub fn global_qualifier(view: Option<&str>, search: Option<&str>) -> String {
+    let parts = [
+        view.and_then(view_qualifier).map(str::to_string),
+        search.map(str::trim).filter(|s| !s.is_empty()).map(str::to_string),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>();
+    if parts.is_empty() {
+        "involves:@me".to_string()
+    } else {
+        parts.join(" ")
+    }
+}
+
+/// Build `gh search prs` args for an account-wide (all repos) search. The
+/// qualifier is a GitHub search fragment (e.g. `author:@me`).
+pub fn pr_search_args(qualifier: &str, state: &str, limit: i64) -> Vec<String> {
+    vec![
+        "search".into(),
+        "prs".into(),
+        qualifier.into(),
+        "--state".into(),
+        state.into(),
+        "--limit".into(),
+        limit.to_string(),
+        "--json".into(),
+        "number,title,author,isDraft,state,repository,url".into(),
+    ]
+}
+
+/// Distinct `owner/name` repos from a `gh search prs` result, in first-seen
+/// order. Used to fan a rich per-repo `gh pr list` out across all matches.
+pub fn repos_from_search(json: &str) -> Vec<String> {
+    let Ok(Value::Array(arr)) = serde_json::from_str::<Value>(json) else {
+        return Vec::new();
+    };
+    let mut out: Vec<String> = Vec::new();
+    for pr in &arr {
+        if let Some(name) = pr["repository"]["nameWithOwner"].as_str() {
+            if !out.iter().any(|r| r == name) {
+                out.push(name.to_string());
+            }
+        }
+    }
+    out
+}
+
 /// Build the argument vector for `gh pr view <number>`. Returns an error string
 /// when the required `number` is missing.
 pub fn pr_view_args(params: &Value) -> Result<Vec<String>, String> {
@@ -203,6 +254,41 @@ mod tests {
     #[test]
     fn pr_view_needs_a_number() {
         assert!(pr_view_args(&json!({})).is_err());
+    }
+
+    #[test]
+    fn global_qualifier_defaults_to_involving_me() {
+        assert_eq!(global_qualifier(None, None), "involves:@me");
+        assert_eq!(global_qualifier(Some("bogus"), None), "involves:@me");
+    }
+
+    #[test]
+    fn global_qualifier_merges_view_and_search() {
+        assert_eq!(global_qualifier(Some("mine"), None), "author:@me");
+        assert_eq!(
+            global_qualifier(Some("mine"), Some("is:draft")),
+            "author:@me is:draft"
+        );
+        assert_eq!(global_qualifier(None, Some("label:bug")), "label:bug");
+    }
+
+    #[test]
+    fn pr_search_args_targets_search_prs() {
+        let args = pr_search_args("author:@me", "open", 50);
+        assert_eq!(args[0..3], ["search", "prs", "author:@me"]);
+        assert!(args.windows(2).any(|w| w == ["--state", "open"]));
+        assert!(args.windows(2).any(|w| w == ["--limit", "50"]));
+    }
+
+    #[test]
+    fn repos_from_search_is_unique_and_ordered() {
+        let json = r#"[
+            {"repository": {"nameWithOwner": "o/a"}},
+            {"repository": {"nameWithOwner": "o/b"}},
+            {"repository": {"nameWithOwner": "o/a"}}
+        ]"#;
+        assert_eq!(repos_from_search(json), vec!["o/a", "o/b"]);
+        assert!(repos_from_search("not json").is_empty());
     }
 
     #[test]

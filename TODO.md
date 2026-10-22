@@ -117,3 +117,8 @@ itself — same core logic, non-AI front doors.
 - [x] Easy in-Zed access to the TUI — `.zed/tasks.json` "GitHub PRs" task runs
       `ghpr-mcp tui` (repo inferred from the worktree); README documents a keybind
       to open it in Zed's integrated terminal
+- [x] Account-wide mode — `--global` on `prs`/`tui` (and `a` to toggle in the TUI)
+      lists PRs across all repos via `gh search prs`, then a rich per-repo
+      `gh pr list` so checks/review/merge columns survive; defaults to involves:@me
+- [ ] Account-wide in the `list_pull_requests` MCP tool (Agent Panel) — same
+      search path, so "my PRs across all repos" works from Zed too
