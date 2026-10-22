@@ -19,6 +19,8 @@ use crate::{cli, gh, notify};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PrRow {
     pub number: i64,
+    /// `owner/name`; empty in single-repo mode where the repo is implicit.
+    pub repo: String,
     pub title: String,
     pub author: String,
     pub approval: String, // APPROVED | CHANGES_REQUESTED | REVIEW_REQUIRED | ""
@@ -147,6 +149,7 @@ pub fn build_rows(json: &str, now: DateTime<Utc>) -> Result<Vec<PrRow>, String> 
         .iter()
         .map(|pr| PrRow {
             number: pr["number"].as_i64().unwrap_or(0),
+            repo: String::new(),
             title: pr["title"].as_str().unwrap_or("").trim().to_string(),
             author: pr["author"]["login"].as_str().unwrap_or("?").to_string(),
             approval: pr["reviewDecision"].as_str().unwrap_or("").to_string(),
@@ -165,6 +168,16 @@ pub fn build_rows(json: &str, now: DateTime<Utc>) -> Result<Vec<PrRow>, String> 
             url: pr["url"].as_str().unwrap_or("").to_string(),
         })
         .collect())
+}
+
+/// Short repo label for the dashboard: drop the owner (usually constant) and
+/// keep `name`, which reads cleaner in a narrow column.
+pub fn short_repo(name_with_owner: &str) -> String {
+    name_with_owner
+        .rsplit_once('/')
+        .map(|(_, name)| name)
+        .unwrap_or(name_with_owner)
+        .to_string()
 }
 
 /// Color for a checks state: green/red/yellow, else gray.
@@ -196,10 +209,18 @@ pub fn approval_label(approval: &str) -> &str {
     }
 }
 
+/// Cap on repos fanned out in account-wide mode — bounds the per-refresh `gh`
+/// calls (one per repo) so a user in dozens of repos can't exhaust rate limit.
+const MAX_GLOBAL_REPOS: usize = 25;
+
 struct App {
     /// `None` means "the current repo" — gh infers it from the working directory.
     repo: Option<String>,
     account: Option<String>,
+    /// Account-wide mode: list PRs across all repos via `gh search prs`.
+    global: bool,
+    /// Named view (e.g. `mine`) driving the account-wide search qualifier.
+    view: Option<String>,
     rows: Vec<PrRow>,
     state: TableState,
     help: bool,
@@ -208,23 +229,64 @@ struct App {
 }
 
 impl App {
-    fn fetch(repo: Option<&str>, account: Option<&str>) -> Result<Vec<PrRow>, String> {
+    /// Build a `gh pr list` arg vector with the rich dashboard fields. When
+    /// `repo`/`search` are set they scope the query; otherwise gh infers the
+    /// repo from the working directory.
+    fn list_args(repo: Option<&str>, search: Option<&str>) -> Vec<String> {
         let mut args: Vec<String> = ["pr", "list", "--state", "open", "--limit", "100", "--json"]
             .iter()
             .map(|s| s.to_string())
             .collect();
         args.push(LIST_FIELDS.to_string());
-        // Omit --repo to let gh infer from the working directory (Zed worktree).
         if let Some(r) = repo {
             args.push("--repo".to_string());
             args.push(r.to_string());
         }
-        let json = gh::run_as(&args, account)?;
+        if let Some(s) = search {
+            args.push("--search".to_string());
+            args.push(s.to_string());
+        }
+        args
+    }
+
+    fn fetch(repo: Option<&str>, account: Option<&str>) -> Result<Vec<PrRow>, String> {
+        let json = gh::run_as(&Self::list_args(repo, None), account)?;
         build_rows(&json, Utc::now())
     }
 
-    fn repo_label(&self) -> &str {
-        self.repo.as_deref().unwrap_or("current repo")
+    /// Account-wide fetch: discover matching repos via `gh search prs`, then run
+    /// the rich per-repo query for each so checks/review/merge columns survive
+    /// (the search API doesn't return those rollups). A failed repo is skipped.
+    fn fetch_global(view: Option<&str>, account: Option<&str>) -> Result<Vec<PrRow>, String> {
+        let qualifier = gh::global_qualifier(view, None);
+        let search_json = gh::run_as(&gh::pr_search_args(&qualifier, "open", 100), account)?;
+        let repos = gh::repos_from_search(&search_json);
+        let now = Utc::now();
+        let mut rows = Vec::new();
+        for repo in repos.iter().take(MAX_GLOBAL_REPOS) {
+            let args = Self::list_args(Some(repo), Some(&qualifier));
+            let Ok(json) = gh::run_as(&args, account) else {
+                continue;
+            };
+            if let Ok(mut rs) = build_rows(&json, now) {
+                for r in &mut rs {
+                    r.repo = repo.clone();
+                }
+                rows.append(&mut rs);
+            }
+        }
+        Ok(rows)
+    }
+
+    fn repo_label(&self) -> String {
+        if self.global {
+            format!(
+                "all repos · {}",
+                gh::global_qualifier(self.view.as_deref(), None)
+            )
+        } else {
+            self.repo.as_deref().unwrap_or("current repo").to_string()
+        }
     }
 
     /// Best-effort GraphQL rate-limit `(remaining, limit)`; `None` on any failure.
@@ -234,7 +296,12 @@ impl App {
     }
 
     fn refresh(&mut self) {
-        match Self::fetch(self.repo.as_deref(), self.account.as_deref()) {
+        let fetched = if self.global {
+            Self::fetch_global(self.view.as_deref(), self.account.as_deref())
+        } else {
+            Self::fetch(self.repo.as_deref(), self.account.as_deref())
+        };
+        match fetched {
             Ok(mut rows) => {
                 apply_sort(&mut rows, self.sort);
                 self.rows = rows;
@@ -288,6 +355,15 @@ impl App {
             self.state.select(Some(0));
         }
     }
+
+    /// Flip between the current repo and account-wide (all repos) and refetch.
+    fn toggle_global(&mut self) {
+        self.global = !self.global;
+        self.status = "loading…".to_string();
+        self.refresh();
+        self.state
+            .select(if self.rows.is_empty() { None } else { Some(0) });
+    }
 }
 
 /// Open a URL in the default browser (best-effort, per platform).
@@ -307,13 +383,20 @@ fn open_in_browser(url: &str) -> std::io::Result<()> {
 }
 
 /// Launch the interactive dashboard. Returns when the user quits.
-pub fn run(repo: Option<&str>, account: Option<&str>) -> Result<String, String> {
+pub fn run(
+    repo: Option<&str>,
+    account: Option<&str>,
+    global: bool,
+    view: Option<&str>,
+) -> Result<String, String> {
     if !std::io::stdout().is_terminal() {
         return Err("the dashboard needs an interactive terminal".to_string());
     }
     let mut app = App {
         repo: repo.map(String::from),
         account: account.map(String::from),
+        global,
+        view: view.map(String::from),
         rows: Vec::new(),
         state: TableState::default(),
         help: false,
@@ -369,6 +452,10 @@ fn event_loop(
                     last_refresh = Instant::now();
                 }
                 KeyCode::Char('s') => app.cycle_sort(),
+                KeyCode::Char('a') | KeyCode::Char('A') => {
+                    app.toggle_global();
+                    last_refresh = Instant::now();
+                }
                 KeyCode::Char('?') => app.help = !app.help,
                 KeyCode::Enter => app.open_selected(),
                 _ => {}
@@ -393,18 +480,26 @@ fn render(f: &mut Frame, app: &mut App) {
     .bold();
     f.render_widget(Paragraph::new(title), chunks[0]);
 
-    let header = Row::new([
-        "#", "checks", "review", "state", "age", "±", "title", "author",
-    ])
-    .style(Style::default().add_modifier(Modifier::BOLD));
+    // Account-wide mode adds a repo column, since a bare number isn't unique
+    // across repos; single-repo mode omits it.
+    let global = app.global;
+    let mut header_cells = vec!["#"];
+    if global {
+        header_cells.push("repo");
+    }
+    header_cells.extend(["checks", "review", "state", "age", "±", "title", "author"]);
+    let header = Row::new(header_cells).style(Style::default().add_modifier(Modifier::BOLD));
     let rows = app.rows.iter().map(|r| {
         let checks_cell = if r.checks_total > 0 {
             format!("{}/{}", r.checks_passed, r.checks_total)
         } else {
             "–".to_string()
         };
-        Row::new(vec![
-            Cell::from(r.number.to_string()),
+        let mut cells = vec![Cell::from(r.number.to_string())];
+        if global {
+            cells.push(Cell::from(short_repo(&r.repo)));
+        }
+        cells.extend([
             Cell::from(checks_cell).style(Style::default().fg(checks_color(&r.checks))),
             Cell::from(approval_label(&r.approval))
                 .style(Style::default().fg(approval_color(&r.approval))),
@@ -413,10 +508,14 @@ fn render(f: &mut Frame, app: &mut App) {
             Cell::from(format!("+{} -{}", r.additions, r.deletions)),
             Cell::from(r.title.clone()),
             Cell::from(r.author.clone()),
-        ])
+        ]);
+        Row::new(cells)
     });
-    let widths = [
-        Constraint::Length(6),
+    let mut widths = vec![Constraint::Length(6)];
+    if global {
+        widths.push(Constraint::Length(20));
+    }
+    widths.extend([
         Constraint::Length(6),
         Constraint::Length(8),
         Constraint::Length(8),
@@ -424,7 +523,7 @@ fn render(f: &mut Frame, app: &mut App) {
         Constraint::Length(12),
         Constraint::Min(20),
         Constraint::Length(16),
-    ];
+    ]);
     let table = Table::new(rows, widths)
         .header(header)
         .block(Block::default().borders(Borders::ALL))
@@ -432,9 +531,9 @@ fn render(f: &mut Frame, app: &mut App) {
     f.render_stateful_widget(table, chunks[1], &mut app.state);
 
     let footer = if app.help {
-        " j/k move · g/G top/bottom · Enter open · s sort · r refresh · ? help · q quit "
+        " j/k move · g/G top/bottom · Enter open · s sort · a all-repos · r refresh · ? help · q quit "
     } else {
-        " j/k move · Enter open · s sort · r refresh · ? help · q quit "
+        " j/k move · Enter open · s sort · a all-repos · r refresh · ? help · q quit "
     };
     f.render_widget(
         Paragraph::new(Line::from(footer)).style(Style::default().fg(Color::DarkGray)),
@@ -476,6 +575,14 @@ mod tests {
         assert_eq!(rows[0].checks, "passing");
         assert_eq!(rows[0].age, "1h");
         assert_eq!(rows[0].additions, 10);
+        // repo is only populated in account-wide mode, where fetch_global tags it.
+        assert_eq!(rows[0].repo, "");
+    }
+
+    #[test]
+    fn short_repo_drops_owner() {
+        assert_eq!(short_repo("nellotech/argocd-manifests"), "argocd-manifests");
+        assert_eq!(short_repo("bare"), "bare");
     }
 
     #[test]
@@ -489,6 +596,7 @@ mod tests {
     fn row(number: i64, age_secs: i64, checks: &str, churn: i64) -> PrRow {
         PrRow {
             number,
+            repo: String::new(),
             title: String::new(),
             author: String::new(),
             approval: String::new(),

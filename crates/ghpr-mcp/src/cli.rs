@@ -28,6 +28,10 @@ pub enum Cmd {
         /// Named preset: needs-my-review | mine | assigned-to-me | involves-me
         #[arg(long)]
         view: Option<String>,
+        /// Search across all your repos (via `gh search prs`), not just one.
+        /// With no filter, defaults to PRs that involve you.
+        #[arg(long)]
+        global: bool,
         #[arg(long, default_value_t = 30)]
         limit: i64,
         /// gh account login to scope this request to.
@@ -50,6 +54,13 @@ pub enum Cmd {
         repo: Option<String>,
         #[arg(long)]
         account: Option<String>,
+        /// Start in account-wide mode (all repos). Toggle in-app with `a`.
+        #[arg(long)]
+        global: bool,
+        /// Named preset driving account-wide mode: needs-my-review | mine |
+        /// assigned-to-me | involves-me.
+        #[arg(long)]
+        view: Option<String>,
     },
     /// Print a review prompt for a PR (title, body, diff) from the config template.
     Review {
@@ -85,9 +96,20 @@ pub fn run(cmd: Cmd) -> Result<String, String> {
             label,
             search,
             view,
+            global,
             limit,
             account,
         } => {
+            if global {
+                // Account-wide: one `gh search prs` spans all repos. The text
+                // list shows no check rollups anyway, so the search API suffices.
+                let qualifier = gh::global_qualifier(view.as_deref(), search.as_deref());
+                let out = gh::run_as(
+                    &gh::pr_search_args(&qualifier, &state, limit),
+                    account.as_deref(),
+                )?;
+                return format_pr_list(&out);
+            }
             let mut params = json!({ "state": state, "limit": limit });
             for (k, v) in [
                 ("repo", repo),
@@ -117,7 +139,12 @@ pub fn run(cmd: Cmd) -> Result<String, String> {
             gh::run_as(&args, account.as_deref())
         }
         Cmd::Accounts => gh::run(&["auth".into(), "status".into()]),
-        Cmd::Tui { repo, account } => crate::tui::run(repo.as_deref(), account.as_deref()),
+        Cmd::Tui {
+            repo,
+            account,
+            global,
+            view,
+        } => crate::tui::run(repo.as_deref(), account.as_deref(), global, view.as_deref()),
         Cmd::Review {
             number,
             repo,
@@ -407,7 +434,14 @@ pub fn format_pr_list(json: &str) -> Result<String, String> {
         } else {
             pr["state"].as_str().unwrap_or("")
         };
-        out.push_str(&format!("#{num:<5} {tag:<8} {title}  (@{author})\n"));
+        // Account-wide results carry a repo; prefix it so the number is unambiguous.
+        let repo = pr["repository"]["nameWithOwner"].as_str().unwrap_or("");
+        let id = if repo.is_empty() {
+            format!("#{num}")
+        } else {
+            format!("{repo}#{num}")
+        };
+        out.push_str(&format!("{id:<28} {tag:<6} {title}  (@{author})\n"));
     }
     Ok(out.trim_end().to_string())
 }
@@ -427,6 +461,16 @@ mod tests {
         assert!(out.contains("Fix login"));
         assert!(out.contains("(@alice)"));
         assert!(out.contains("DRAFT")); // draft overrides state
+    }
+
+    #[test]
+    fn account_wide_rows_show_the_repo() {
+        let json = r#"[
+            {"number": 7, "title": "Fix", "author": {"login": "alice"}, "state": "open",
+             "isDraft": false, "repository": {"nameWithOwner": "o/web"}}
+        ]"#;
+        let out = format_pr_list(json).unwrap();
+        assert!(out.contains("o/web#7"), "got: {out}");
     }
 
     #[test]

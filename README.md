@@ -75,19 +75,25 @@ subcommand (with no subcommand it speaks MCP, which is how the extension uses it
 
 ```sh
 ghpr-mcp prs --view needs-my-review     # filtered PR list
+ghpr-mcp prs --global --view mine       # my PRs across ALL repos (not just this one)
 ghpr-mcp prs --repo owner/name --state all --account other-login
 ghpr-mcp pr 42                          # one PR in detail (JSON)
 ghpr-mcp accounts                       # authenticated gh accounts
 ghpr-mcp review 42 --repo owner/name    # print a review prompt (title+body+diff)
 ghpr-mcp tui                            # interactive PR dashboard (repo inferred from cwd)
+ghpr-mcp tui --global                   # dashboard across all your repos
 ghpr-mcp watch --repo owner/name        # poll and notify on PR changes (--once for one cycle)
 ```
 
+`--global` lists PRs across **all** your repos via `gh search prs` instead of the
+current one; with no `--view`/`--search` it defaults to PRs that involve you.
+Combine it with a view (`mine`, `needs-my-review`, `assigned-to-me`, `involves-me`).
+
 `tui` is a keyboard-driven dashboard of open PRs (color-coded checks, approval,
 age, diff stats): `j`/`k` or arrows to move, `g`/`G` for top/bottom, `Enter` to
-open in the browser, `s` to cycle the sort (number/age/checks/size), `r` to
-refresh, `?` for help, `q` to quit. With no `--repo` it uses the current repo (gh
-infers it from the working directory).
+open in the browser, `s` to cycle the sort (number/age/checks/size), `a` to toggle
+account-wide (all repos), `r` to refresh, `?` for help, `q` to quit. With no
+`--repo` it uses the current repo (gh infers it from the working directory).
 
 ### Dashboard inside Zed
 
